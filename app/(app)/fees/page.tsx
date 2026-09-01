@@ -124,8 +124,29 @@ function monthLabelShort(dateStr?: string | null): string {
 
 function fmtDateTime(dt: Date): string {
   const datePart = dt.toLocaleDateString('en-GB');
-  const timePart = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const timePart = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
   return `${datePart}, ${timePart}`;
+}
+
+// payment_date is either a real CURRENT_TIMESTAMP (normal submissions,
+// has a genuine time-of-day) or a custom back-date cast to ::DATE by the
+// API, which Postgres stores as exact midnight-UTC with no real time.
+// Use UTC date components for the date-only case so it isn't shifted by
+// local timezone conversion.
+function fmtDateOnly(dt: Date): string {
+  const day = String(dt.getUTCDate()).padStart(2, '0');
+  const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const year = dt.getUTCFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+// Detect the midnight-UTC (custom back-date) case and show date-only for
+// it; otherwise it's a real timestamp, so show the actual local time.
+function fmtSubmitted(dt: Date): string {
+  const isDateOnly =
+    dt.getUTCHours() === 0 && dt.getUTCMinutes() === 0 && dt.getUTCSeconds() === 0;
+  if (isDateOnly) return fmtDateOnly(dt);
+  return fmtDateTime(dt);
 }
 
 function getPrintMode(): 'paper' | 'thermal' {
@@ -896,7 +917,7 @@ function FeesContent() {
     const cumulativePaid = +r.amount_paid || 0;
     const thisPayment = r.this_payment_amount != null ? +r.this_payment_amount : cumulativePaid;
 
-    const classLabel = baseClassFromSection(`${cls || ''}${section ? '-' + section : ''}`) || String(cls || '');
+    const classLabel = String(cls || '');
     const classFeeRow = classFees.find((c) => c.class === classLabel);
     const totalFee = classFeeRow ? +classFeeRow.total_fee : null;
     const discount = totalFee != null ? Math.max(0, totalFee - due) : null;
@@ -1022,7 +1043,7 @@ function FeesContent() {
     </div>
 
     <div class="title">Fee Receipt</div>
-    <div class="meta">Receipt No: ${d.receipt_no} &nbsp;|&nbsp; Fee Submitted: ${fmtDateTime(d.payment_date)} &nbsp;|&nbsp; Printed: ${fmtDateTime(printedAt)}</div>
+    <div class="meta">Receipt No: ${d.receipt_no} &nbsp;|&nbsp; Fee Submitted: ${fmtSubmitted(d.payment_date)} &nbsp;|&nbsp; Printed: ${fmtDateTime(printedAt)}</div>
     ${d.photo_url ? `<div class="receipt-photo"><img src="${d.photo_url}" alt="Student photo" onerror="this.style.display='none'"/></div>` : ''}
     <table class="info">
       <tr><td class="label">Student Name</td><td>${d.student_name}</td>
@@ -1088,18 +1109,20 @@ function FeesContent() {
 <title>Receipt — ${d.student_name}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { margin: 0 !important; padding: 0 !important; }
-  @page { size: 80mm auto; margin: 0; }
+  html, body { margin: 0 !important; padding: 0 !important; width: 80mm !important; }
+  @page { size: 80mm auto; margin: 0 !important; }
   body {
     font-family: Arial, Helvetica, sans-serif;
-    color: #000; width: 76mm; margin: 0 auto; padding: 2mm;
+    color: #000; padding: 0 2mm !important;
     font-size: 12px; line-height: 1.5;
     font-weight: 400;
     -webkit-font-smoothing: none;
   }
   .receipt-box {
     border: 1.5px solid #000;
-    padding: 8px;
+    padding: 8px 8px 12px;
+    width: 100%;
+    margin: 0;
   }
   .center { text-align: center; }
   .school-name { font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -1108,9 +1131,9 @@ function FeesContent() {
   .divider { border-top: 1px dashed #000; margin: 7px 0; }
   .divider-solid { border-top: 1.5px solid #000; margin: 7px 0; }
   .section-box { border: 1px solid #000; border-radius: 3px; padding: 6px 7px; margin: 7px 0; }
-  .row { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
-  .row span:first-child { color: #000; font-weight: 700; }
-  .row span:last-child { font-weight: 400; text-align: right; }
+  .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 2px 0; }
+  .row span:first-child { color: #000; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .row span:last-child { font-weight: 400; text-align: right; word-break: break-word; }
   .title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px dashed #000; padding-bottom: 3px; }
   .amount-paid { font-weight: 700 !important; }
   .strong-value { font-weight: 700 !important; }
@@ -1121,7 +1144,8 @@ function FeesContent() {
   .footer .thanks { font-weight: 700; margin-bottom: 3px; font-size: 12px; }
   .footer .credit { font-size: 9px; color: #000; margin-top: 8px; margin-bottom: 0; font-weight: 700; }
   @media print {
-    html, body { width: 76mm; padding: 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { width: 80mm !important; margin: 0 !important; padding: 0 2mm !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .receipt-box { width: 100% !important; }
   }
 </style>
 </head>
@@ -1135,7 +1159,7 @@ function FeesContent() {
   <div class="divider-solid"></div>
 
   ${row('Receipt No.', d.receipt_no)}
-  ${row('Fee Submitted', fmtDateTime(d.payment_date))}
+  ${row('Fee Submitted', fmtSubmitted(d.payment_date))}
   ${row('Printed', fmtDateTime(printedAt))}
 
   <div class="section-box">
@@ -1168,7 +1192,13 @@ function FeesContent() {
   </div>
 </div>
   <script>
-    window.onload = function () { window.print(); };
+    window.onload = function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          window.print();
+        });
+      });
+    };
   <\/script>
 </body>
 </html>`;

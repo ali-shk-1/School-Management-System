@@ -221,9 +221,9 @@ export async function POST(req: NextRequest) {
       // Mirror the printed receipt's Total Fee / Discount logic exactly
       // (see normalizeReceiptData in app/(app)/fees/page.tsx): the class's
       // configured total_fee minus this month's amount_due (never negative).
-      // class is looked up base (without section) same as the UI's
-      // baseClassFromSection, since class_fees.class is section-less.
-      const baseClass = String(payment.class || '').replace(/-[^-]*$/, '');
+      // payment.class is already the plain class value (section is stored
+      // separately), so no stripping is needed here.
+      const baseClass = String(payment.class || '').trim();
       const classFeeRow = baseClass
         ? await prisma.$queryRaw<{ total_fee: any }[]>`
             SELECT total_fee FROM class_fees WHERE class = ${baseClass} LIMIT 1
