@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  role_id      Int     @id @default(autoincrement())
+  role_name    String  @unique @db.VarChar(20)
+  display_name String? @db.VarChar(50)
+  users        User[]
+
+  @@map("roles")
+}
+
+model User {
+  user_id       Int       @id @default(autoincrement())
+  username      String    @unique @db.VarChar(50)
+  password_hash String    @db.VarChar(255)
+  role_id       Int?
+  staff_id      Int?      @unique
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  last_login    DateTime?
+  role          Role?     @relation(fields: [role_id], references: [role_id])
+  staff         Staff?    @relation(fields: [staff_id], references: [staff_id])
+
+  // Postgres does not auto-index FK columns on the referencing side
+  // (only the referenced PK gets one) — role_id is joined on every
+  // authenticated request's permission lookup path.
+  @@index([role_id])
+
+  @@map("users")
+}
+
+model RolePermission {
+  role_name      String   @db.VarChar
+  permission_key String   @db.VarChar
+  allowed        Boolean  @default(false)
+  updated_at     DateTime @default(now())
+
+  @@id([role_name, permission_key])
+  @@map("role_permissions")
+}
+
+model RolePageVisibility {
+  role_name  String   @db.VarChar
+  page_key   String   @db.VarChar
+  visible    Boolean  @default(true)
+  updated_at DateTime @default(now())
+
+  @@id([role_name, page_key])
+  @@map("role_page_visibility")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model Student {
+  student_id      Int          @id @default(autoincrement())
+  roll_no         Int
+  section         String       @db.VarChar(10)
+  class           String       @db.VarChar(10)
+  first_name      String       @db.VarChar(50)
+  last_name       String?      @db.VarChar(50)
+  father_name     String?      @db.VarChar(100)
+  contact_1       String?      @db.VarChar(15)
+  contact_2       String?      @db.VarChar(15)
+  address         String?
+  admission_date  DateTime     @default(now()) @db.Date
+  email           String?      @db.VarChar(255)
+  photo_url       String?
+  fee_start_month DateTime?    @db.Date
+  gender          String?      @db.VarChar(10)
+  fee_payments    FeePayment[]
+  student_fee     StudentFee?
+
+  // Perf: class/section browsing was doing a full table scan (no index
+  // existed). Covers the Students-page filter + the class+section+roll_no
+  // default sort. (A first_name/last_name search index is added
+  // separately in Migration-by-Ali/004/005 — kept out of schema.prisma
+  // here since it's two columns rather than the single merged `name`
+  // column v8 indexes.)
+  @@index([class, section])
+
+  @@map("students")
+}
+
+model LeftStudent {
+  left_student_id Int                     @id @default(autoincrement())
+  old_student_id  Int?
+  roll_no         Int?
+  section         String?                 @db.VarChar
+  class           String?                 @db.VarChar
+  first_name      String                  @db.VarChar
+  last_name       String?                 @db.VarChar
+  father_name     String?                 @db.VarChar
+  contact_1       String?                 @db.VarChar
+  contact_2       String?                 @db.VarChar
+  email           String?                 @db.VarChar
+  photo_url       String?
+  address         String?
+  admission_date  DateTime?               @db.Date
+  left_date       DateTime                @default(now()) @db.Date
+  left_reason     String?
+  fee_start_month DateTime?               @db.Date
+  gender          String?                 @db.VarChar(10)
+  fee_payments    LeftStudentFeePayment[]
+
+  @@map("left_students")
+}
+
+model LeftStudentFeePayment {
+  left_fee_payment_id Int         @id @default(autoincrement())
+  left_student_id     Int
+  old_student_id      Int?
+  academic_month      DateTime?   @db.Date
+  amount_due          Decimal?    @db.Decimal
+  amount_paid         Decimal?    @db.Decimal
+  payment_date        DateTime?
+  left_student        LeftStudent @relation(fields: [left_student_id], references: [left_student_id], onDelete: Cascade)
+
+  @@map("left_student_fee_payments")
+}
+
+model Designation {
+  id    Int     @id @default(autoincrement())
+  title String? @db.VarChar(50)
+  staff Staff[]
+
+  @@map("designations")
+}
+
+model Staff {
+  staff_id       Int          @id @default(autoincrement())
+  name           String       @db.VarChar(100)
+  cnic           String       @unique @db.VarChar(15)
+  phone_no       String?      @db.VarChar(15)
+  salary         Decimal?     @db.Decimal(12, 2)
+  designation_id Int?
+  designation    Designation? @relation(fields: [designation_id], references: [id])
+  users          User?
+
+  // Added: photo (stored flat at uploads/staff/<cnic>.ext, see
+  // lib/uploads.ts saveStaffPhotoFile), joining date (manually set in the
+  // form, defaults to "now" like admission_date does for students so
+  // existing behavior/required-ness stays consistent), an incremental
+  // pay/grade category (Category 1 / Category 2 — plain string, easy to
+  // extend later without a schema change), and an optional self-relation
+  // so a staff member (e.g. a Teacher) can be marked as reporting to
+  // another staff member with an Admin-type designation.
+  photo_url      String?      @db.VarChar(255)
+  joining_date   DateTime?    @default(now()) @db.Date
+  category       String?      @db.VarChar(20)
+  admin_id       Int?
+  admin          Staff?       @relation("StaffAdmin", fields: [admin_id], references: [staff_id])
+  subordinates   Staff[]      @relation("StaffAdmin")
+
+  // FK columns aren't auto-indexed by Postgres; both are joined/filtered
+  // on the Staff page and org-chart lookups.
+  @@index([designation_id])
+  @@index([admin_id])
+
+  @@map("staff")
+}
+
+model LeftStaff {
+  left_staff_id  Int      @id @default(autoincrement())
+  old_staff_id   Int?
+  name           String   @db.VarChar
+  cnic           String?  @db.VarChar
+  phone_no       String?  @db.VarChar
+  salary         Decimal? @db.Decimal
+  designation_id Int?
+  designation    String?  @db.VarChar
+  left_date      DateTime @default(now()) @db.Date
+  left_reason    String?
+
+  @@map("left_staff")
+}
+
+model FeePayment {
+  payment_id     Int             @id @default(autoincrement())
+  student_id     Int?
+  academic_month DateTime        @db.Date
+  amount_due     Decimal?        @db.Decimal(10, 2)
+  amount_paid    Decimal?        @default(0) @db.Decimal(10, 2)
+  payment_date   DateTime?       @default(now())
+  student        Student?        @relation(fields: [student_id], references: [student_id])
+  receipts       PaymentReceipt?
+
+  // Added for query performance: every fee/tracking page (Fee Tracking,
+  // Student Tracking, student profile, monthly defaulters, daily report)
+  // filters or joins on student_id and/or academic_month. Without these,
+  // Postgres does a full table scan on fee_payments for each of those
+  // pages, which gets slower as payment rows accumulate. Index-only —
+  // does not alter, move, or delete any existing row.
+  @@index([student_id])
+  @@index([academic_month])
+  @@index([student_id, academic_month])
+  // GET /api/fees/daily filters + sorts by payment_date directly
+  // (fp.payment_date >= :date AND < :date+1day, ORDER BY payment_date
+  // DESC) — was never backed by an index, so every daily-report request
+  // did a full table scan that gets slower every month more payments
+  // are recorded.
+  @@index([payment_date])
+  @@map("fee_payments")
+}
+
+model PaymentReceipt {
+  receipt_no     Int         @id @default(autoincrement())
+  payment_id     Int?        @unique
+  student_id     Int
+  roll_no        String?     @db.VarChar
+  student_name   String?     @db.VarChar
+  class          String?     @db.VarChar
+  section        String?     @db.VarChar
+  academic_month DateTime?   @db.Date
+  amount_due     Decimal?    @default(0) @db.Decimal
+  amount_paid    Decimal?    @default(0) @db.Decimal
+  print_mode     String?     @default("paper") @db.VarChar
+  issued_at      DateTime    @default(now())
+  issued_by      String?     @db.VarChar
+  payment        FeePayment? @relation(fields: [payment_id], references: [payment_id], onUpdate: NoAction)
+
+  @@index([student_id])
+  @@index([issued_at])
+  // GET /api/fees/receipts?search= does LOWER(student_name) LIKE
+  // '%term%' / roll_no LIKE / receipt_no LIKE — a leading-wildcard LIKE
+  // can't use a plain btree index (see the students name-search
+  // precedent in migration 005), so this was a full table scan on every
+  // search, slower every receipt issued. The matching pg_trgm GIN index
+  // is added in Migration-by-Ali/006 (not modeled here — Prisma's index
+  // API doesn't support operator classes, same as 005).
+  @@map("payment_receipts")
+}
+
+// Global per-class total fee settings, used to compute the "discount"
+// shown on receipts (total_fee - amount_due charged to the student).
+// One row per class label (Playgroup, Nursery, Prep, 1..10, or any
+// other class string in use) — class is free text to match the
+// Student.class column, not an enum.
+model ClassFee {
+  class_fee_id Int      @id @default(autoincrement())
+  class        String   @unique @db.VarChar(20)
+  total_fee    Decimal  @db.Decimal(10, 2)
+  updated_at   DateTime @default(now()) @updatedAt
+  updated_by   String?  @db.VarChar(50)
+
+  @@map("class_fees")
+}
+
+model StudentFee {
+  student_fee_id Int      @id @default(autoincrement())
+  student_id     Int      @unique
+  total_fee      Decimal  @db.Decimal(10, 2)
+  updated_at     DateTime @default(now()) @updatedAt
+  updated_by     String?  @db.VarChar(50)
+  student        Student  @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+
+  @@map("student_fees")
+}
+
+model ExpenseCategory {
+  category_id   Int       @id @default(autoincrement())
+  category_name String?   @db.VarChar(50)
+  expenses      Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  expense_id  Int              @id @default(autoincrement())
+  category_id Int?
+  amount      Decimal          @db.Decimal(12, 2)
+  description String?
+  created_at  DateTime?        @default(now()) @db.Date
+  category    ExpenseCategory? @relation(fields: [category_id], references: [category_id])
+
+  // Perf: dashboard + expenses/reports (by-category, monthly-trend) all
+  // filter/group by created_at with no index backing it -> full scan on
+  // every request, worse every month more expenses are logged.
+  @@index([created_at])
+  // FK column, not auto-indexed by Postgres; joined on the by-category report.
+  @@index([category_id])
+  @@map("expenses")
+}

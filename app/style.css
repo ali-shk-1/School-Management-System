@@ -1,0 +1,1180 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { overflow-x: hidden; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 14px;
+  background: #f5f5f5;
+  color: #222;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* NAV */
+.navbar {
+  background: #1a1a2e;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  /* Fixed, not min-height: the bar must never resize based on how many
+     nav links a role sees or which link is active. It used to be
+     `flex-wrap: wrap` on both this container and the nested <nav>,
+     which meant the total bar height depended on whether the link row
+     happened to wrap onto a second line — a threshold that shifted
+     with the active link's own width (longer label = wider = more
+     likely to wrap) and with how many links a role has (ali sees 2
+     more than other roles: Permissions + DB Admin). That produced a
+     visible height jump ("shaking") switching between pages, worst
+     for ali since that role sits closest to the wrap threshold. Now
+     the bar itself never wraps or grows; the link row scrolls
+     horizontally instead (see .navbar nav below), so height is
+     constant for every role on every page. */
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  gap: 16px;
+  overflow: hidden;
+}
+.navbar .brand {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.navbar nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  /* Room for links doesn't change the bar's height even when a role
+     has more links than fit — it scrolls sideways instead of wrapping
+     to a second row. */
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.navbar nav a {
+  color: #ccc;
+  text-decoration: none;
+  margin-left: 16px;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-icon { display: inline-flex; flex-shrink: 0; }
+.navbar nav a:first-child { margin-left: 0; }
+.navbar nav a:hover, .navbar nav a.active {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+.nav-section { display: flex; flex-direction: column; }
+.nav-submenu-caret { margin-left: auto; flex-shrink: 0; transition: transform .15s ease; }
+.nav-section.open > a .nav-submenu-caret { transform: rotate(180deg); }
+/* Submenu: smaller text, more breathing room per row, and a subtle
+   left "rail" + indent so it reads clearly as nested under its parent
+   link instead of just a slightly-indented copy of it. Height is
+   animated (grid-rows trick) rather than toggled with display:none so
+   opening/closing doesn't feel like an abrupt snap. */
+.nav-submenu {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows .2s ease;
+  margin: 2px 0 4px 18px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+.nav-section.open .nav-submenu {
+  grid-template-rows: 1fr;
+}
+.nav-submenu > div {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-top: 2px;
+}
+.nav-submenu a {
+  color: #9a9ab0;
+  text-decoration: none;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 8px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.nav-submenu a:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.nav-submenu a.active {
+  background: rgba(108,123,255,0.18);
+  color: #fff;
+  font-weight: 600;
+}
+.navbar-right {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.navbar-user {
+  font-size: 12px;
+  color: var(--nav-link, #ccc);
+  white-space: nowrap;
+  margin-left: 6px;
+  opacity: 0.85;
+}
+.navbar .logout-btn {
+  background: none;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 5px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-left: 20px;
+  white-space: nowrap;
+}
+.navbar .logout-btn:hover { border-color: #fff; color: #fff; }
+
+/* ============ DESKTOP LEFT SIDEBAR ============ */
+/* Above the mobile breakpoint, .navbar switches from a horizontal top
+   bar to a fixed left sidebar — same markup/classes (brand, inner
+   <nav> of links, .navbar-right), just re-flowed with flexbox into a
+   column instead of a row. This is desktop/tablet-only: below 769px
+   the @media (max-width:768px) block further down still applies and
+   overrides every rule here back to the original horizontal top bar,
+   which is why nothing in this block needs its own mobile guard. */
+@media (min-width: 769px){
+  .navbar{
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    position: fixed;
+    inset: 0 auto 0 0;
+    /* Driven by --sidebar-width (default 220px, set inline in <head>
+       and updated live while dragging .sidebar-resize-handle below) so
+       the bar's own width and body's padding-left (further down) stay
+       in sync without a re-render. */
+    width: var(--sidebar-width, 220px);
+    height: 100vh;
+    padding: 18px 14px;
+    gap: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    /* Collapse animates by sliding fully off-screen rather than
+       shrinking to 0 width — shrinking would squash/wrap the nav
+       labels mid-animation, sliding just moves the whole bar as one
+       rigid piece. transform (not left/width) keeps it GPU-composited
+       so the slide stays smooth. */
+    transition: transform .25s ease;
+  }
+  /* Auto-hiding sidebar scrollbar: the thumb fades to fully transparent
+     while idle, and fades back in while actively scrolling (see the
+     `.is-scrolling` toggle in NavBar.tsx, which adds/removes this class
+     around scroll events with a debounced timeout). Firefox reads the
+     color from --sidebar-scrollbar-thumb below; WebKit gets an explicit
+     ::-webkit-scrollbar-thumb rule further down so both engines animate
+     the same way. Track stays fully transparent always — only the
+     thumb itself fades, so nothing "pops in" as a hard rectangle. */
+  .navbar{
+    --sidebar-scrollbar-thumb: transparent;
+    scrollbar-width: thin;
+    scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+  }
+  .navbar.is-scrolling{
+    --sidebar-scrollbar-thumb: var(--scrollbar-thumb);
+  }
+  .navbar::-webkit-scrollbar{ width: 8px; }
+  .navbar::-webkit-scrollbar-track{ background: transparent; }
+  .navbar::-webkit-scrollbar-thumb{
+    background: var(--sidebar-scrollbar-thumb);
+    border-radius: 8px;
+    /* The transition that makes it "disappear with a good transition"
+       instead of snapping — WebKit does animate background-color on
+       scrollbar pseudo-elements. */
+    transition: background-color .5s ease;
+  }
+  .navbar::-webkit-scrollbar-thumb:hover{
+    background: var(--accent, #4f46e5);
+  }
+  /* Grabbable strip on the sidebar's right edge. Sits just outside the
+     padding so it doesn't eat into the nav links' click area, wide
+     enough to grab comfortably without looking like a thick border. */
+  .sidebar-resize-handle{
+    display: block;
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-width, 220px);
+    transform: translateX(-3px);
+    width: 6px;
+    height: 100vh;
+    cursor: ew-resize;
+    z-index: 101;
+    background: transparent;
+    touch-action: none;
+  }
+  .sidebar-resize-handle:hover,
+  .sidebar-resize-handle:active{
+    background: var(--accent, #4f46e5);
+    opacity: .5;
+  }
+  /* Collapse toggle: a small round button pinned near the top of the
+     sidebar's edge, always fully visible (not a faint sliver) so it
+     reads clearly as a control both when expanding and collapsing.
+     Position tracks --sidebar-width while expanded so it always sits
+     right at the edge, whatever width the user dragged it to; once
+     collapsed it settles at a fixed on-screen spot (see rule below)
+     so there's always an obvious way to bring the sidebar back. */
+  .sidebar-collapse-toggle{
+    position: fixed;
+    /* Pinned near the top, clear of the nav links below it (and of
+       the brand row above), so it never sits on top of — or gets
+       mistaken for — a nav item. Always at a fixed, predictable spot
+       whether the sidebar is open or collapsed. */
+    top: 22px;
+    left: var(--sidebar-width, 220px);
+    transform: translateX(-50%);
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nav-bg, #1a1a2e);
+    color: var(--nav-link, #ccc);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    cursor: pointer;
+    /* Fully visible at rest (not a faint hard-to-notice sliver) so
+       it always reads as a clickable control, including once the
+       sidebar is collapsed and this is the only way to bring it back. */
+    opacity: 1;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    z-index: 102;
+    padding: 0;
+    transition: left .25s ease, background .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .sidebar-collapse-toggle:hover{
+    background: var(--accent, #4f46e5);
+    border-color: var(--accent, #4f46e5);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  }
+  .sidebar-collapse-toggle svg{ transition: transform .25s ease; }
+  /* Arrow points left ("collapse this way") normally, flips to point
+     right once collapsed ("bring it back this way"). */
+  [data-sidebar-collapsed] .sidebar-collapse-toggle svg{ transform: rotate(180deg); }
+  /* Once collapsed, sitting right at the very edge of the viewport
+     reads oddly (half the circle in the void) — nudge it fully
+     on-screen so it's obviously a floating "show sidebar" button. */
+  [data-sidebar-collapsed] .sidebar-collapse-toggle{
+    left: 14px;
+    transform: none;
+  }
+  .navbar .brand{
+    padding: 0 8px 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+  .navbar nav{
+    flex-direction: column;
+    align-items: stretch;
+    overflow: visible;
+    flex: 1 1 auto;
+    gap: 2px;
+  }
+  .navbar nav a{
+    margin-left: 0;
+    padding: 9px 10px;
+    font-size: 13.5px;
+  }
+  .navbar-right{
+    flex-direction: column;
+    align-items: stretch;
+    margin-left: 0;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+    gap: 8px;
+  }
+  .navbar-user{ margin-left: 0; text-align: center; }
+  .navbar .theme-toggle{ align-self: center; }
+  .navbar .logout-btn{ margin-left: 0; width: 100%; }
+  /* Content needs to clear the fixed sidebar's width — .page already
+     centers itself with `margin:0 auto`, so widening its effective
+     offset via padding (not margin, to keep the centering math simple)
+     pushes it clear of the sidebar without touching every page's own
+     markup. */
+  body{ padding-left: var(--sidebar-width, 220px); }
+  /* Content needs the same slide-over feel as the sidebar itself, so
+     the padding that reserves its space is animated too — otherwise
+     the sidebar would slide away instantly while the content jumped
+     to fill the gap a beat later (or vice versa). */
+  body{ transition: padding-left .25s ease; }
+
+  /* Collapsed state: sidebar slides fully off-screen (translateX by
+     its own width, whatever that currently is) instead of just
+     hiding, so the slide-out is visible rather than an instant pop.
+     Body padding collapses to 0 in step so content reflows to fill
+     the freed space with the same timing. The resize handle hides
+     while collapsed (nothing to grab), and the toggle tab itself
+     sticks to the very left edge instead of tracking the old width. */
+  [data-sidebar-collapsed] .navbar{
+    transform: translateX(calc(-1 * var(--sidebar-width, 220px)));
+  }
+  [data-sidebar-collapsed] body{ padding-left: 0; }
+  [data-sidebar-collapsed] .sidebar-resize-handle{ display: none; }
+}
+/* Below the desktop breakpoint the sidebar reverts to the horizontal
+   top bar (see the mobile @media block further down) — dragging a
+   width there wouldn't mean anything, so the handle is hidden. */
+@media (max-width: 768px){
+  .sidebar-resize-handle{ display: none; }
+  .sidebar-collapse-toggle{ display: none; }
+}
+
+/* LAYOUT */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.page-title { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+
+/* CARDS */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm, none);
+}
+
+/* STAT CARDS */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow-sm, none);
+  transition: box-shadow .15s, transform .15s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md, none); transform: translateY(-1px); }
+.stat-card .label { font-size: 13px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+.stat-card .value .currency { font-size: 16px; font-weight: 600; }
+.stat-card .sub { font-size: 12px; color: var(--muted, #707070); margin-top: 3px; }
+
+/* TABLE */
+.table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+  padding-bottom: 4px;
+}
+.table-wrap::-webkit-scrollbar { height: 12px; }
+.table-wrap::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 8px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.table-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #4f46e5);
+  background-clip: padding-box;
+}
+
+/* Page scrollbar — same thin, theme-aware treatment as .table-wrap
+   above so the browser's default (light, chunky) bar doesn't clash
+   once dark mode swaps --scrollbar-thumb to its darker pair. The
+   sidebar (.navbar) has its own auto-hiding rule further up instead
+   of this always-visible one. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+html::-webkit-scrollbar { width: 12px; }
+html::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+html::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--accent, #4f46e5);
+  background-clip: padding-box;
+}
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: #f0f0f0;
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #555;
+  border-bottom: 1px solid #ddd;
+}
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+  color: #333;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafafa; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.btn-primary { background: #1a1a2e; color: #fff; }
+.btn-success { background: #2d7a4f; color: #fff; }
+.btn-danger { background: #c0392b; color: #fff; }
+.btn-warning { background: #d68910; color: #fff; }
+.btn-outline { background: #fff; color: #444; border: 1px solid #ccc; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* TABS — used by the Fees page's own sections and by the
+   Active/Left sub-page switcher on Students and Staff (Students'
+   "Left Students" and Staff's "Left Staff" used to be separate
+   sidebar links; they're now tabs here instead, same pattern as
+   Fees' Monthly/Daily/etc.). Kept global (Fees previously defined an
+   identical copy in its own <style jsx> block) so any page can use
+   the same look without duplicating the rules. */
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  font-weight: 500;
+}
+.tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--text);
+}
+.tab-btn:hover {
+  color: var(--text);
+}
+@media (max-width: 768px) {
+  .tab-btn {
+    padding: 10px 16px;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+}
+
+/* FORMS */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.form-group-caption { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  /* 16px, not 13px: iOS Safari auto-zooms the whole page on focus for
+     any input/select/textarea with a computed font-size under 16px.
+     Every form on every page uses this rule, so at 13px that zoom
+     fired on every single field tap on iPhone — the viewport would
+     jump in and the user had to manually pinch back out each time.
+     16px is the documented iOS threshold; below it the zoom is
+     unconditional regardless of viewport meta settings. */
+  font-size: 16px;
+  color: #222;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1a1a2e;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+.profile-photo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 12px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel-2, rgba(127,127,127,0.08));
+}
+.profile-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--muted, #707070);
+  line-height: 1;
+  padding: 10px;
+  margin: -10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.modal-close:hover { background: rgba(127,127,127,0.12); }
+.modal-footer { margin-top: 18px; display: flex; gap: 10px; justify-content: flex-end; }
+
+/* FILTERS */
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  align-items: flex-end;
+}
+.filters input,
+.filters select {
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  /* Same iOS auto-zoom fix as .form-group above — filter bars appear
+     on every list page (Students, Staff, Fees, Tracking, Receipts…). */
+  font-size: 16px;
+  background: #fff;
+}
+
+/* BADGES */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+/* colors moved to the token-driven definitions in the THEME VARIABLES
+   section below, so light and dark mode share one source of truth */
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #222;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 999;
+  transform: translateY(30px);
+  opacity: 0;
+  transition: all 0.25s;
+  pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.toast-success { background: #2d7a4f; }
+.toast.toast-error   { background: #c0392b; }
+.toast.toast-warning { background: #d68910; }
+
+/* EMPTY STATE */
+.empty { text-align: center; color: var(--muted, #707070); padding: 40px 20px; font-size: 14px; }
+
+/* SECTION TITLE */
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--th-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* LOGIN PAGE */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f5;
+}
+.login-box {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 36px 32px;
+  width: 340px;
+}
+.login-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  text-align: center;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.login-logo-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex: 0 0 auto;
+}
+.brand-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 5px;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+.navbar .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-sub {
+  text-align: center;
+  color: var(--muted, #707070);
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+.login-box .form-group label { text-transform: none; font-size: 13px; }
+.login-btn {
+  width: 100%;
+  padding: 10px;
+  background: #1a1a2e;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+}
+.login-btn:hover { background: #2a2a4e; }
+.login-error { font-size: 13px; margin-top: 10px; text-align: center; }
+
+/* LOADING */
+.loading { text-align: center; color: var(--muted, #707070); padding: 30px; }
+
+/* SEARCH */
+.search-box {
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  /* Same iOS auto-zoom fix — .search-box renders as a real <input>. */
+  font-size: 16px;
+  width: 220px;
+}
+
+/* FEE SPECIFIC */
+.fee-paid   { font-weight: 600; }
+.fee-unpaid { font-weight: 600; }
+.fee-partial{ font-weight: 600; }
+/* ============ THEME VARIABLES ============
+   Full semantic token set. Every color used anywhere in the app should
+   resolve to one of these — no component should hardcode a hex value.
+   Dark mode is a deliberately separate palette (not just inverted/
+   darkened light-mode colors): surfaces step up in lightness with
+   elevation, status colors are desaturated slightly and brightened for
+   contrast against a dark backdrop, and shadows are near-black instead
+   of the light-mode's soft grey so cards still read as "lifted". */
+:root{
+  --bg:#f5f5f5; --text:#222; --card-bg:#fff; --border:#ddd;
+  --nav-bg:#1a1a2e; --nav-text:#fff; --nav-link:#ccc;
+  --th-bg:#f0f0f0; --th-text:#555; --td-text:#333; --row-hover:#fafafa;
+  --input-bg:#fff; --input-border:#ccc; --muted:#707070; --font-scale:1;
+  --panel:transparent; --panel-2:rgba(127,127,127,0.08);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.06); --shadow-md:0 4px 10px rgba(0,0,0,.1);
+  --shadow-lg:0 10px 30px rgba(0,0,0,.14);
+  /* Sidebar width — dragged live via .sidebar-resize-handle (JS sets
+     this same var inline) and restored from localStorage before first
+     paint (see SIDEBAR_WIDTH_INIT_SCRIPT). This value is just the
+     no-JS/first-load fallback. */
+  --sidebar-width:220px;
+  /* Scrollbar colors: light mode keeps the original muted-grey thumb;
+     dark mode below swaps in a darker, higher-contrast pair so
+     scrollbars don't look like a stray light-mode leftover. */
+  --scrollbar-thumb:#888; --scrollbar-track:rgba(127,127,127,0.08);
+
+  /* status colors (light) */
+  --success-bg:#e6f4ea; --success-text:#2d7a4f; --success-fg:#2d7a4f;
+  --danger-bg:#fce8e6;  --danger-text:#c0392b;  --danger-fg:#c0392b;
+  --warning-bg:#fdf3d9; --warning-text:#8a6d1a; --warning-fg:#d68910;
+  --info-bg:#e3f0fc;    --info-text:#1c5c96;    --info-fg:#1c5c96;
+  --accent:#4f46e5; --accent-hover:#4338ca; --focus-ring:rgba(79,70,229,.35);
+  --overlay:rgba(0,0,0,.4);
+}
+[data-theme="dark"]{
+  --bg:#12141c; --text:#e8e8ec; --card-bg:#1c1f2b; --border:#333748;
+  --nav-bg:#0d0e16; --nav-text:#fff; --nav-link:#b8bcd0;
+  --th-bg:#232636; --th-text:#c3c6d6; --td-text:#e0e2ec; --row-hover:#262a3a;
+  --input-bg:#232636; --input-border:#3a3f55; --muted:#9498ad; --font-scale:1.03;
+  --panel:rgba(255,255,255,0.03); --panel-2:rgba(255,255,255,0.06);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45);
+  --shadow-lg:0 14px 36px rgba(0,0,0,.55);
+  /* Darker scrollbar for dark mode — a light-grey thumb (the --muted
+     fallback used elsewhere) would stand out too much against these
+     dark surfaces, so this pair is deliberately darker than --muted
+     rather than reusing it. */
+  --scrollbar-thumb:#4a4e63; --scrollbar-track:rgba(0,0,0,0.25);
+
+  /* status colors (dark) — brightened + desaturated for legibility on
+     dark surfaces, not just a lighter version of the light-mode hue */
+  --success-bg:#1c3b28; --success-text:#7be3a0; --success-fg:#5fd88f;
+  --danger-bg:#3d201d;  --danger-text:#ff9c8f;  --danger-fg:#ff8a7a;
+  --warning-bg:#3a3312; --warning-text:#f0d878; --warning-fg:#f0c060;
+  --info-bg:#1b2e40;    --info-text:#8fc4f5;    --info-fg:#7ab8f5;
+  --accent:#6c7bff; --accent-hover:#8592ff; --focus-ring:rgba(108,123,255,.4);
+  --overlay:rgba(0,0,0,.6);
+}
+body{ background:var(--bg); color:var(--text); font-size:calc(14px * var(--font-scale)); transition:background .2s; }
+/* Color (not background) transitions on bold/large text cause a visible
+   double-paint "ghosting" artifact in Chromium when the browser
+   cross-fades text-layer subpixel-AA between the old and new color mid-
+   frame (seen as colored fringing around bold numbers when switching
+   theme). Snapping color instantly for text — while keeping the
+   background fade for a smooth overall feel — removes the artifact
+   without disabling the theme transition. */
+*{ transition-property: background, background-color, border-color; }
+.stat-card .value, .page-title, td, th, .modal-title, .login-logo,
+.btn, .badge, label, .form-group label{ transition: background .2s, border-color .2s; }
+.navbar{ background:var(--nav-bg); color:var(--nav-text); }
+.navbar nav a{ color:var(--nav-link); }
+.page-title{ color:var(--text); }
+.card,.stat-card,.modal,.login-box{ background:var(--card-bg); border-color:var(--border); }
+.stat-card .value{ color:var(--text); }
+th{ background:var(--th-bg); color:var(--th-text); border-bottom-color:var(--border); }
+td{ color:var(--td-text); border-bottom-color:var(--border); }
+tr:hover td{ background:var(--row-hover); }
+.group-header-row td{ background:var(--th-bg); color:var(--th-text); }
+.form-group input,.form-group select,.form-group textarea,
+.filters input,.filters select,.search-box{
+  background:var(--input-bg); border-color:var(--input-border); color:var(--text);
+}
+.form-group label{ color:var(--th-text); }
+.form-group-caption{ color:var(--th-text); }
+.stat-card .label{ color:var(--muted); }
+.btn-outline{ background:var(--card-bg); color:var(--text); border-color:var(--input-border); }
+.modal-title,.login-logo{ color:var(--text); }
+.modal-close{ color:var(--muted); }
+.empty,.loading,.login-sub,.stat-card .sub{ color:var(--muted); }
+#countLabel{ color:var(--muted) !important; }
+
+/* Badges and fee-status text now read from status tokens directly, so
+   light/dark both derive from the same semantic source instead of dark
+   mode being a patch of manually rebalanced hexes. */
+.badge-success{ background:var(--success-bg); color:var(--success-text); }
+.badge-danger { background:var(--danger-bg);  color:var(--danger-text); }
+.badge-warning{ background:var(--warning-bg); color:var(--warning-text); }
+.badge-info   { background:var(--info-bg);    color:var(--info-text); }
+.fee-paid   { color:var(--success-fg); }
+.fee-unpaid { color:var(--danger-fg); }
+.fee-partial{ color:var(--warning-fg); }
+.login-error{ color:var(--danger-fg); }
+
+/* Theme toggle button */
+.theme-toggle{
+  display:inline-flex; align-items:center; justify-content:center;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18);
+  color:var(--nav-link); width:32px; height:32px; border-radius:8px;
+  cursor:pointer; margin-left:10px; padding:0; position:relative;
+  transition:background .15s, border-color .15s, transform .1s;
+  flex:0 0 auto;
+}
+.theme-toggle:hover{ background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.32); }
+.theme-toggle:active{ transform:scale(0.92); }
+.theme-toggle .theme-icon{ position:absolute; transition:opacity .15s, transform .2s; }
+.theme-toggle .theme-icon-sun{ opacity:0; transform:rotate(-90deg) scale(0.6); }
+.theme-toggle .theme-icon-moon{ opacity:1; transform:rotate(0) scale(1); }
+[data-theme="dark"] .theme-toggle .theme-icon-sun{ opacity:1; transform:rotate(0) scale(1); }
+[data-theme="dark"] .theme-toggle .theme-icon-moon{ opacity:0; transform:rotate(90deg) scale(0.6); }
+[data-theme="dark"] .theme-toggle{ border-color:rgba(255,255,255,0.14); }
+
+
+/* ============ UTILITY CLASSES (replace inline styles) ============ */
+.text-muted{ color:var(--muted) !important; }
+.mini-input{
+  width:100%; padding:8px 10px; border:1px solid var(--input-border);
+  /* Same iOS auto-zoom fix — used for inline-editable table cells. */
+  border-radius:4px; font-size:16px; box-sizing:border-box;
+  background:var(--input-bg); color:var(--text);
+}
+.popup-panel{
+  background:var(--card-bg); border:1px solid var(--input-border); border-top:none;
+  box-shadow:0 4px 10px rgba(0,0,0,.25);
+}
+.popup-option{
+  padding:8px 10px; cursor:pointer; font-size:13px;
+  border-bottom:1px solid var(--border); color:var(--text);
+}
+[data-theme="dark"] .popup-option:hover{ background:var(--row-hover); }
+.notice-box{
+  display:none; background:var(--warning-bg); border:1px solid var(--warning-fg);
+  color:var(--warning-text); padding:10px; border-radius:4px; font-size:12px;
+  margin-bottom:10px;
+}
+.grid-2, .grid-2-1{ display:grid; gap:16px; margin-bottom:20px; }
+.grid-2{ grid-template-columns:1fr 1fr; }
+.grid-2-1{ grid-template-columns:2fr 1fr; align-items:start; margin-bottom:0; }
+.inline-flex-gap{ display:flex; gap:8px; }
+.list-panel{ border:1px solid var(--border); border-radius:4px; }
+.list-row{ display:flex; align-items:center; justify-content:space-between; padding:8px 12px; }
+.list-row + .list-row{ border-top:1px solid var(--border); }
+.progress-track{ background:var(--border); border-radius:3px; height:6px; }
+.progress-fill{ background:var(--accent); height:6px; border-radius:3px; }
+.ellipsis-cell{ max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.amount-danger{ font-weight:600; color:var(--danger-fg); }
+.amount-success{ font-weight:600; color:var(--success-fg); }
+/* .stat-card .value (2 classes) has higher specificity than .amount-danger/
+   .amount-success alone (1 class), so those colors would silently lose to
+   .stat-card .value's color:var(--text) when combined on a stat card
+   (e.g. Dashboard's Overdue Months / Balance cards). Match specificity
+   explicitly so the semantic color actually applies there too. */
+.stat-card .value.amount-danger{ color:var(--danger-fg); }
+.stat-card .value.amount-success{ color:var(--success-fg); }
+
+/* Small text-color/background/border utility classes so components use
+   real classes instead of hardcoded inline hex — this is what makes
+   dark mode work for these everywhere without a selector-matching hack. */
+.text-secondary{ color:var(--th-text); }
+.border-subtle{ border:1px solid var(--border); }
+.border-input{ border:1px solid var(--input-border); }
+.bg-card{ background:var(--card-bg); }
+.shadow-card{ box-shadow:var(--shadow-md); }
+
+/* Accessible focus ring — was entirely missing before, relying on
+   browser defaults that look inconsistent across the dark/light
+   surfaces used here. */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ============ SKELETON LOADING ============ */
+.skeleton{
+  position: relative; overflow: hidden; background: var(--th-bg);
+  border-radius: 4px; color: transparent !important;
+}
+.skeleton::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(90deg, transparent, var(--row-hover), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.3s ease-in-out infinite;
+}
+@keyframes skeleton-sweep{ 100%{ transform: translateX(100%); } }
+.skeleton-text{ height: 14px; width: 100%; margin-bottom: 6px; }
+.skeleton-title{ height: 20px; width: 60%; margin-bottom: 10px; }
+.skeleton-card{ height: 84px; border-radius: 8px; }
+.skeleton-row td{ padding: 10px 12px; }
+
+/* ============ MOBILE RESPONSIVE ============ */
+@media (max-width: 768px){
+  /* Bug fix history on this block, most recent first:
+
+     3) The link row wasn't wrapping to its own line AT ALL — verified
+        by rendering the real markup+CSS in a headless browser at a
+        390px viewport and reading back each child's computed box.
+        .navbar's three children are .brand, the inner <nav> (links),
+        and .navbar-right; only the <nav> had `order:3` set here — but
+        it also had `flex:0 0 40px`, which sets flex-basis to a literal
+        40px. `width:100%` on a flex item does NOT override a
+        flex-basis set via the `flex` shorthand, so the browser sized
+        it at 40px and — since 93px (brand) + 120px (navbar-right) +
+        40px (nav) all fit within a 390px line — never wrapped it onto
+        row 2 at all. All three sat on ONE row, off to the right, with
+        the entire scrollable link list rendered at x≈336 in a 40px-
+        wide sliver — invisible and unusable, which is exactly what
+        was reported ("navbar broken, no proper horizontal scrolling").
+        Fixed by using `flex-basis:100%` (not `width`) to actually
+        force the wrap, and by giving `.brand`/`.navbar-right` an
+        explicit `order` too so the two-row split is unambiguous
+        instead of relying on wrap timing.
+     2) height:auto → the bar's total height depended on content
+        (varies by role/page), which combined with `position:sticky`
+        made the bar visibly jump when switching tabs — same class of
+        bug the desktop layout above already documents. Fixed by
+        pinning a total height.
+     1) (desktop) flex-wrap on both container and inner nav let the
+        link row wrap unpredictably based on the active link's width —
+        see the .navbar comment above. */
+  .navbar{ flex-wrap:wrap; height:108px; padding:10px 14px; gap:8px; align-content:flex-start; }
+  .navbar .brand{ order:1; }
+  .navbar-right{ order:2; gap:2px; }
+  .navbar nav{ order:3; flex:0 0 100%; height:40px; display:flex; overflow-x:auto; gap:4px; -webkit-overflow-scrolling:touch; }
+  .navbar nav a{ margin-left:0; flex:0 0 auto; white-space:nowrap; padding:10px 10px; min-height:40px; display:inline-flex; align-items:center; }
+  .nav-section{ flex-direction:row; flex:0 0 auto; }
+  /* The vertical dropdown submenu doesn't fit the mobile top bar's
+     horizontal-scroll link row — each Fees/Tracking/etc. page already
+     has its own in-page tabs/toggle for these, so just hide the
+     caret/submenu here rather than trying to force it into the row. */
+  .nav-submenu-caret{ display:none; }
+  .nav-submenu{ display:none; }
+  .navbar-user{ display:none; }
+  .navbar .logout-btn{ margin-left:6px; padding:8px 12px; font-size:12px; min-height:40px; }
+  .theme-toggle{ width:40px; height:40px; }
+  /* Touch targets: buttons/toggles get a comfortable minimum tap area on
+     touch screens without changing their visual size on desktop, where
+     hover + a mouse pointer make the smaller default sizing fine. */
+  .btn{ min-height:40px; padding:9px 14px; }
+  .btn-sm{ min-height:34px; padding:7px 12px; }
+  .toggle-switch{ width:44px; height:26px; }
+  .toggle-slider::before{ height:20px; width:20px; }
+  .toggle-switch input:checked + .toggle-slider::before{ transform:translateX(18px); }
+  .page{ padding:14px 10px; }
+  .page-header{ flex-wrap:wrap; gap:10px; }
+  .stats-grid{ grid-template-columns:repeat(2,1fr) !important; gap:10px; }
+  .stat-card{ padding:12px 10px; }
+  .stat-card .value{ font-size:21px; }
+  .stat-card .value .currency{ font-size:13px; }
+  .stat-card .label{ font-size:11px; letter-spacing:0.3px; }
+  .stat-card .sub{ font-size:11px; }
+  .grid-2, .grid-2-1{ grid-template-columns:1fr !important; }
+  /* Bug fix ("no horizontal scroll works" — Expenses page: All
+     Expenses table + By Category breakdown): `grid-template-columns:
+     1fr` alone doesn't make a grid track shrink to fit. CSS Grid items
+     default to `min-width:auto`, which means a track never shrinks
+     below the intrinsic (unwrapped) width of its content — verified by
+     rendering this page at 390px and reading back the actual computed
+     `grid-template-columns`, which came back as a fixed 642px (the
+     table's natural width) instead of the expected single ~370px
+     column. The table itself has `.table-wrap{overflow-x:auto}`, which
+     should make IT scroll — but that only works if the column it sits
+     in is already capped at the viewport width; here the column itself
+     was 642px wide, so the table fit inside its own wrapper with
+     nothing to scroll, and the 272px of overflow was just sitting off
+     the right edge of the screen, clipped by the page's own
+     `overflow-x:hidden` with no way to reach it. Every direct grid
+     child needs `min-width:0` so the browser is actually allowed to
+     shrink the track to the single-column width the rule above
+     requests; only then does `.table-wrap`'s own horizontal scroll
+     take over correctly. */
+  .grid-2 > *, .grid-2-1 > *{ min-width:0; }
+  .form-row{ grid-template-columns:1fr; }
+  .filters{ flex-direction:column; align-items:stretch; }
+  /* Bug fix: `input` here matched checkbox inputs too (Boys/Girls
+     filters, e.g. app/(app)/fees/page.tsx's daily tab), forcing each
+     checkbox to `width:100%` — a checkbox stretched across the full
+     row width, with the "Boys"/"Girls" text wrapping onto its own line
+     beneath it instead of sitting beside it. Scoped to text-like
+     inputs only (excluding checkbox/radio, which should stay their
+     natural small size) so filter checkboxes render normally: box and
+     label on one line, like every other checkbox in the app. */
+  .filters input:not([type="checkbox"]):not([type="radio"]),.filters select,.search-box{ width:100% !important; max-width:none !important; }
+  .filters label:has(input[type="checkbox"]),.filters label:has(input[type="radio"]){ align-self:flex-start; }
+  #countLabel{ margin-left:0 !important; margin-top:4px; display:block; }
+  table{ font-size:12px; min-width:600px; }
+  .modal{ width:95%; padding:16px; }
+  .login-box{ width:90%; padding:26px 20px; }
+  .page-title{ font-size:18px; }
+  div[style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns:2fr 1fr"]{ grid-template-columns:1fr !important; }
+  .toast{ left:16px; right:16px; bottom:16px; text-align:center; }
+}
+@media (max-width: 420px){
+  .navbar .brand span{ font-size:14px; }
+}
+/* ============ PERMISSIONS PAGE ============ */
+.perm-user-card{ margin-bottom:20px; }
+.perm-user-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid var(--border);
+  flex-wrap:wrap; gap:10px;
+}
+.perm-user-title{ font-size:16px; font-weight:700; color:var(--text); }
+.perm-user-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* List of every account under a role (a role can now have any number
+   of accounts, not just one) — reuses .perm-row for each account line
+   but wraps them in a bordered panel so they read as a distinct group
+   from the Nav Pages / Actions sections below. */
+.perm-users-list{
+  border:1px solid var(--border); border-radius:8px; padding:2px 12px;
+  background:var(--panel, transparent);
+}
+
+/* Two clearly separated sections per role card: which nav pages are
+   visible, and what each page's add/edit/delete actions allow. Each
+   section heading sits on its own bordered strip so the eye can jump
+   straight to "Nav Pages" vs "Actions" instead of reading a long
+   undifferentiated list of group titles. */
+.perm-section-title{
+  font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px;
+  color:var(--text); padding:6px 10px; margin:18px 0 10px;
+  background:var(--panel-2, rgba(127,127,127,0.08)); border-radius:6px;
+}
+.perm-section-title:first-of-type{ margin-top:0; }
+
+/* Permission groups (Students, Fees, Receipts, ...) laid out as cards in
+   a responsive grid so multiple groups sit side-by-side on wide screens
+   instead of stacking into one long column. */
+.perm-groups-wrap{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+  gap:12px;
+}
+.perm-group-card{
+  border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+  background:var(--panel, transparent);
+}
+.perm-group-title{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;
+  color:var(--muted); margin:0 0 8px;
+}
+.perm-grid{
+  display:flex; flex-direction:column; gap:2px;
+}
+.perm-row{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:6px 0; font-size:13px; color:var(--td-text);
+  border-bottom:1px solid var(--border);
+}
+.perm-row:last-child{ border-bottom:none; }
+.perm-row.disabled{ opacity:0.5; }
+
+/* Nav-page-visibility toggles: a compact grid of just page-name + switch,
+   without the group-card chrome (there's no add/edit/delete breakdown
+   here, just "can this role see this page at all").  */
+.perm-pages-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
+  gap:8px 20px;
+}
+
+.toggle-switch{
+  position:relative; display:inline-block; width:40px; height:22px; flex:0 0 auto;
+}
+.toggle-switch input{ opacity:0; width:0; height:0; }
+.toggle-slider{
+  position:absolute; cursor:pointer; inset:0; background:#c8c8d0;
+  border-radius:22px; transition:.15s;
+}
+.toggle-slider::before{
+  position:absolute; content:""; height:16px; width:16px; left:3px; bottom:3px;
+  background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 2px rgba(0,0,0,.3);
+}
+.toggle-switch input:checked + .toggle-slider{ background:#2d7a4f; }
+.toggle-switch input:checked + .toggle-slider::before{ transform:translateX(18px); }
+.toggle-switch input:disabled + .toggle-slider{ opacity:0.5; cursor:not-allowed; }
+[data-theme="dark"] .toggle-slider{ background:#3a3f55; }
+
+.ali-badge{
+  display:inline-block; font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.4px; background:#4f46e5; color:#fff; padding:2px 8px; border-radius:20px;
+}
+/* ── Smooth authenticated-shell transitions (perf/UX pass) ───────────
+   Used by app/(app)/layout.tsx. The shell (NavBar + auth guard) now
+   mounts once per session instead of once per navigation, so this
+   loading bar is only ever seen on first load / hard refresh, never
+   on ordinary tab switching. Page content fades in instead of
+   snapping, so switching tabs never reads as a white "blink". */
+.app-shell-loading{
+  position:fixed; inset:0; display:flex; align-items:flex-start; justify-content:center;
+  background:var(--bg); z-index:9999;
+}
+.app-shell-loading-bar{
+  margin-top:0; width:100%; height:3px; overflow:hidden; position:relative;
+  background:transparent;
+}
+.app-shell-loading-bar::after{
+  content:""; position:absolute; top:0; left:-30%; width:30%; height:100%;
+  background:linear-gradient(90deg, transparent, #4f46e5, transparent);
+  animation:shell-loading-sweep 1s ease-in-out infinite;
+}
+@keyframes shell-loading-sweep{
+  0%{ left:-30%; }
+  100%{ left:100%; }
+}
+
+.app-page-transition{
+  animation:app-page-fade-in .15s ease-out;
+}
+@keyframes app-page-fade-in{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
