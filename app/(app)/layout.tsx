@@ -30,7 +30,11 @@
  * click.
  */
 
+<<<<<<< HEAD
 import { Suspense, useEffect, useState } from 'react';
+=======
+import { useEffect, useState } from 'react';
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 import { usePathname } from 'next/navigation';
 import { useAuthGuard } from '@/lib/useAuthGuard';
 import { loadMyPermissions } from '@/lib/permissions-client';
@@ -83,9 +87,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ToastHost />
+<<<<<<< HEAD
       <Suspense fallback={null}>
         <NavBar activePage={activePageFromPath(pathname)} />
       </Suspense>
+=======
+      <NavBar activePage={activePageFromPath(pathname)} />
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       {/* key={pathname} restarts the fade-in animation (see
           .app-page-transition in style.css) on every route change,
           giving a smooth crossfade instead of new content snapping in

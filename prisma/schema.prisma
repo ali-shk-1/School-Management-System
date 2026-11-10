@@ -8,10 +8,16 @@ datasource db {
 }
 
 model Role {
+<<<<<<< HEAD
   role_id      Int     @id @default(autoincrement())
   role_name    String  @unique @db.VarChar(20)
   display_name String? @db.VarChar(50)
   users        User[]
+=======
+  role_id   Int    @id @default(autoincrement())
+  role_name String @unique @db.VarChar(20)
+  users     User[]
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   @@map("roles")
 }
@@ -74,7 +80,10 @@ model Student {
   fee_start_month DateTime?    @db.Date
   gender          String?      @db.VarChar(10)
   fee_payments    FeePayment[]
+<<<<<<< HEAD
   student_fee     StudentFee?
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   // Perf: class/section browsing was doing a full table scan (no index
   // existed). Covers the Students-page filter + the class+section+roll_no
@@ -251,6 +260,7 @@ model ClassFee {
   @@map("class_fees")
 }
 
+<<<<<<< HEAD
 model StudentFee {
   student_fee_id Int      @id @default(autoincrement())
   student_id     Int      @unique
@@ -262,6 +272,8 @@ model StudentFee {
   @@map("student_fees")
 }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 model ExpenseCategory {
   category_id   Int       @id @default(autoincrement())
   category_name String?   @db.VarChar(50)

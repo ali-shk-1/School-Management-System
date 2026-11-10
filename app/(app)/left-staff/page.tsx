@@ -42,7 +42,11 @@ export default function LeftStaffPage() {
   );
 }
 
+<<<<<<< HEAD
 function LeftStaffContent({ embedded = false }: { embedded?: boolean } = {}) {
+=======
+function LeftStaffContent() {
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allLeftStaff, setAllLeftStaff] = useState<LeftStaff[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -231,6 +235,7 @@ function LeftStaffContent({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       </div>
 
+<<<<<<< HEAD
       {(() => {
         // Same content either way — only the outer .page/.page-header
         // shell differs; when embedded, the Staff page already
@@ -315,6 +320,81 @@ function LeftStaffContent({ embedded = false }: { embedded?: boolean } = {}) {
           </div>
         );
       })()}
+=======
+      <div className="page">
+        <div className="page-header">
+          <h1 className="page-title">Left Staff</h1>
+        </div>
+        <div className="card">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Name</th>
+                  <th>Designation</th>
+                  <th>CNIC</th>
+                  <th>Phone</th>
+                  <th>Salary</th>
+                  <th>Left Date</th>
+                  <th>Reason</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={9} className="loading">
+                      Loading…
+                    </td>
+                  </tr>
+                ) : loadFailed ? (
+                  <tr>
+                    <td colSpan={9} className="empty">
+                      Failed to load left staff.
+                    </td>
+                  </tr>
+                ) : allLeftStaff.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="empty">
+                      No left staff found.
+                    </td>
+                  </tr>
+                ) : (
+                  allLeftStaff.map((s, i) => (
+                    <tr key={s.left_staff_id}>
+                      <td>{i + 1}</td>
+                      <td>
+                        <strong>{s.name}</strong>
+                      </td>
+                      <td>{s.designation || '—'}</td>
+                      <td>{s.cnic || '—'}</td>
+                      <td>{s.phone_no || '—'}</td>
+                      <td>{formatMoney(s.salary ?? 0)}</td>
+                      <td>{formatDate(s.left_date)}</td>
+                      <td>{s.left_reason || '—'}</td>
+                      <td>
+                        {hasPerm('left-staff.edit') && (
+                          <button className="btn btn-outline btn-sm" onClick={() => editLeftStaff(s.left_staff_id)}>
+                            Edit
+                          </button>
+                        )}
+                        {hasPerm('left-staff.delete') && (
+                          <button className="btn btn-danger btn-sm" onClick={() => deleteLeftStaff(s.left_staff_id)}>
+                            Delete
+                          </button>
+                        )}
+                        {!hasPerm('left-staff.edit') && !hasPerm('left-staff.delete') && '—'}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     </>
   );
 }

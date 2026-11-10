@@ -15,10 +15,14 @@ import { showToast } from '@/lib/toast';
 import { isAliUser } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 
+<<<<<<< HEAD
 // Built-in fallback labels, used only until ali sets a custom one via the
 // "Rename Role" control (persisted server-side as roles.display_name and
 // returned per-role as `label` in GET /api/permissions).
 const DEFAULT_ROLE_LABELS: Record<string, string> = {
+=======
+const ROLE_LABELS: Record<string, string> = {
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   admin: 'Admin',
   principal: 'Principal',
   vice_principal: 'Vice Principal',
@@ -34,7 +38,10 @@ interface PermUser {
 
 interface RoleEntry {
   role: string;
+<<<<<<< HEAD
   label?: string;
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   users: PermUser[];
   permissions: Record<string, boolean>;
   page_visibility?: Record<string, boolean>;
@@ -106,12 +113,15 @@ function PermissionsContent() {
   const [renameUserId, setRenameUserId] = useState<number | null>(null);
   const [renameUsername, setRenameUsername] = useState('');
 
+<<<<<<< HEAD
   // Rename role (display label) modal
   const [roleRenameModalOpen, setRoleRenameModalOpen] = useState(false);
   const [roleRenameRole, setRoleRenameRole] = useState('');
   const [roleRenameCurrentLabel, setRoleRenameCurrentLabel] = useState('');
   const [roleRenameValue, setRoleRenameValue] = useState('');
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const permDataRef = useRef<PermData | null>(null);
   permDataRef.current = permData;
 
@@ -139,8 +149,12 @@ function PermissionsContent() {
     checkbox.disabled = true;
     try {
       await api('PUT', `/api/permissions/${role}`, { permission_key: key, allowed });
+<<<<<<< HEAD
       const roleLabel = permDataRef.current?.roles.find((r) => r.role === role)?.label || DEFAULT_ROLE_LABELS[role] || role;
       showToast(`${allowed ? 'Enabled' : 'Disabled'} "${key}" for ${roleLabel}.`);
+=======
+      showToast(`${allowed ? 'Enabled' : 'Disabled'} "${key}" for ${ROLE_LABELS[role] || role}.`);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       setPermData((prev) => {
         if (!prev) return prev;
         const next: PermData = { ...prev, roles: prev.roles.map((r) => ({ ...r, permissions: { ...r.permissions } })) };
@@ -161,8 +175,12 @@ function PermissionsContent() {
     checkbox.disabled = true;
     try {
       await api('PUT', `/api/permissions/${role}/visibility`, { page_key: pageKey, visible });
+<<<<<<< HEAD
       const roleLabel = permDataRef.current?.roles.find((r) => r.role === role)?.label || DEFAULT_ROLE_LABELS[role] || role;
       showToast(`${visible ? 'Showed' : 'Hid'} "${pageKey}" page for ${roleLabel}.`);
+=======
+      showToast(`${visible ? 'Showed' : 'Hid'} "${pageKey}" page for ${ROLE_LABELS[role] || role}.`);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       setPermData((prev) => {
         if (!prev) return prev;
         const next: PermData = {
@@ -307,6 +325,7 @@ function PermissionsContent() {
     }
   }
 
+<<<<<<< HEAD
   function openRoleRenameModal(role: string, currentLabel: string) {
     setRoleRenameRole(role);
     setRoleRenameCurrentLabel(currentLabel);
@@ -329,6 +348,8 @@ function PermissionsContent() {
     }
   }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   async function savePassword() {
     if (!pwNew || pwNew.length < 6) {
       showToast('Password must be at least 6 characters.', 'error');
@@ -516,6 +537,7 @@ function PermissionsContent() {
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Rename Role (display label) Modal */}
       <div className={`modal-overlay${roleRenameModalOpen ? ' open' : ''}`}>
         <div className="modal max-w-[380px]">
@@ -551,6 +573,8 @@ function PermissionsContent() {
         </div>
       </div>
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       <div className="page">
         <div className="page-header">
           <h1 className="page-title">Permissions</h1>
@@ -571,11 +595,18 @@ function PermissionsContent() {
 
         <div className="card mb-4">
           <p className="text-muted text-[13px] leading-[1.6]">
+<<<<<<< HEAD
             Toggle exactly what each role is allowed to do. Turning something off hides that button/action for
             every account with that role, immediately — no re-login required for pages loaded after the change. Ali
             always has every permission and cannot be restricted here. A role can have any number of accounts —
             add as many as you need, and every account under a role shares that role's permission settings. You
             can also rename a role's display label at any time.
+=======
+            Toggle exactly what each account is allowed to do. Turning something off hides that button/action for
+            every user with that role, immediately — no re-login required for pages loaded after the change. Ali
+            always has every permission and cannot be restricted here. Each role has exactly one login account —
+            create it if missing, or enable/disable it without losing its permission settings.
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
           </p>
         </div>
 
@@ -586,13 +617,22 @@ function PermissionsContent() {
             <div className="card loading">Loading permissions…</div>
           ) : (
             permData.roles.map((roleEntry) => {
+<<<<<<< HEAD
               const roleLabel = roleEntry.label || DEFAULT_ROLE_LABELS[roleEntry.role] || roleEntry.role;
+=======
+              const roleLabel = ROLE_LABELS[roleEntry.role] || roleEntry.role;
+              const usernames = roleEntry.users.length
+                ? roleEntry.users.map((u) => `${u.username}${u.is_active ? '' : ' (disabled)'}`).join(', ')
+                : 'No account currently has this role';
+              const firstUser = roleEntry.users[0];
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
               return (
                 <div className="card perm-user-card" key={roleEntry.role}>
                   <div className="perm-user-header">
                     <div>
                       <div className="perm-user-title">{roleLabel}</div>
+<<<<<<< HEAD
                       <div className="perm-user-sub">
                         {roleEntry.users.length
                           ? `${roleEntry.users.length} account${roleEntry.users.length > 1 ? 's' : ''} with this role`
@@ -606,10 +646,37 @@ function PermissionsContent() {
                       >
                         Rename Role
                       </button>
+=======
+                      <div className="perm-user-sub">{usernames}</div>
+                    </div>
+                    {firstUser ? (
+                      <div className="flex gap-2 flex-wrap">
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => openRenameModal(firstUser.user_id, firstUser.username)}
+                        >
+                          Rename
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => openPwModal(firstUser.user_id, firstUser.username)}
+                        >
+                          Change Password
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => toggleUserActive(firstUser.user_id, firstUser.is_active)}
+                        >
+                          {firstUser.is_active ? 'Disable' : 'Enable'}
+                        </button>
+                      </div>
+                    ) : (
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => openCreateModal(roleEntry.role, roleLabel)}
                       >
+<<<<<<< HEAD
                         Add Account
                       </button>
                     </div>
@@ -648,6 +715,13 @@ function PermissionsContent() {
                     </div>
                   )}
 
+=======
+                        Create Account
+                      </button>
+                    )}
+                  </div>
+
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                   <div className="perm-section-title">Nav Pages Visible</div>
                   <div className="perm-pages-grid">
                     {(permData.pages || []).map((p) => (

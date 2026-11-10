@@ -11,12 +11,19 @@ import { MANAGEABLE_ROLES } from '@/lib/permissions';
    Body: { username, password }
    Ported from routes/permissions.js `POST /users/:role`.
 
+<<<<<<< HEAD
    Creates a new login account for a manageable role (admin, principal,
    vice_principal, accountant, viewer). Roles are no longer capped at
    one account each — ali can create as many accounts under a role as
    needed; every account for a role shares that role's permission and
    page-visibility settings, since those are keyed by role_name, not
    by user.
+=======
+   Creates the single login account for a manageable role (admin,
+   principal, vice_principal, accountant, viewer) — each role has exactly
+   one account, same 1:1 model as create-admin.js etc. Fails with 409 if
+   that role already has an account; use rename/reset-password instead.
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
    NOTE: this route's dynamic segment is named [user_id] on disk (shared
    with the PUT handler below) purely because Next.js's App Router
@@ -52,6 +59,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
       );
     }
 
+<<<<<<< HEAD
+=======
+    const existingForRole = await prisma.user.findFirst({
+      where: { role: { role_name: role } },
+      select: { user_id: true },
+    });
+    if (existingForRole) {
+      return NextResponse.json(
+        { error: `An account already exists for the ${role} role. Rename or reset its password instead.` },
+        { status: 409 }
+      );
+    }
+
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     const dupe = await prisma.user.findUnique({ where: { username: username.trim() } });
     if (dupe) {
       return NextResponse.json({ error: `Username "${username}" is already taken.` }, { status: 409 });

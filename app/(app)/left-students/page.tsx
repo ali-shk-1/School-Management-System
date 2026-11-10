@@ -68,7 +68,11 @@ export default function LeftStudentsPage() {
   );
 }
 
+<<<<<<< HEAD
 function LeftStudentsContent({ embedded = false }: { embedded?: boolean } = {}) {
+=======
+function LeftStudentsContent() {
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allLeftStudents, setAllLeftStudents] = useState<LeftStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -362,6 +366,7 @@ function LeftStudentsContent({ embedded = false }: { embedded?: boolean } = {}) 
         </div>
       </div>
 
+<<<<<<< HEAD
       {(() => {
         // Same content either way — only the outer .page/.page-header
         // shell differs, since when embedded the Students page already
@@ -440,6 +445,23 @@ function LeftStudentsTable({
 }) {
   return (
     <div className="card">
+=======
+      <div className="page">
+        <div className="page-header">
+          <h1 className="page-title">Left Students</h1>
+        </div>
+        <div className="card mb-4">
+          <div className="filters">
+            <label className="flex items-center gap-1 text-[13px] font-medium whitespace-nowrap">
+              <input type="checkbox" checked={filterBoys} onChange={(e) => setFilterBoys(e.target.checked)} /> Boys
+            </label>
+            <label className="flex items-center gap-1 text-[13px] font-medium whitespace-nowrap">
+              <input type="checkbox" checked={filterGirls} onChange={(e) => setFilterGirls(e.target.checked)} /> Girls
+            </label>
+          </div>
+        </div>
+        <div className="card">
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
           <div className="table-wrap">
             <table>
               <thead>
@@ -533,6 +555,12 @@ function LeftStudentsTable({
               </button>
             </div>
           )}
+<<<<<<< HEAD
     </div>
+=======
+        </div>
+      </div>
+    </>
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   );
 }

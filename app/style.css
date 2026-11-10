@@ -80,6 +80,7 @@ body {
   background: rgba(255,255,255,0.12);
   color: #fff;
 }
+<<<<<<< HEAD
 .nav-section { display: flex; flex-direction: column; }
 .nav-submenu-caret { margin-left: auto; flex-shrink: 0; transition: transform .15s ease; }
 .nav-section.open > a .nav-submenu-caret { transform: rotate(180deg); }
@@ -125,6 +126,8 @@ body {
   color: #fff;
   font-weight: 600;
 }
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 .navbar-right {
   display: flex;
   flex-wrap: nowrap;
@@ -168,16 +171,21 @@ body {
     justify-content: flex-start;
     position: fixed;
     inset: 0 auto 0 0;
+<<<<<<< HEAD
     /* Driven by --sidebar-width (default 220px, set inline in <head>
        and updated live while dragging .sidebar-resize-handle below) so
        the bar's own width and body's padding-left (further down) stay
        in sync without a re-render. */
     width: var(--sidebar-width, 220px);
+=======
+    width: 220px;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     height: 100vh;
     padding: 18px 14px;
     gap: 4px;
     overflow-y: auto;
     overflow-x: hidden;
+<<<<<<< HEAD
     overscroll-behavior-y: contain;
     /* Collapse animates by sliding fully off-screen rather than
        shrinking to 0 width — shrinking would squash/wrap the nav
@@ -287,6 +295,8 @@ body {
   [data-sidebar-collapsed] .sidebar-collapse-toggle{
     left: 14px;
     transform: none;
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   }
   .navbar .brand{
     padding: 0 8px 18px;
@@ -322,6 +332,7 @@ body {
      offset via padding (not margin, to keep the centering math simple)
      pushes it clear of the sidebar without touching every page's own
      markup. */
+<<<<<<< HEAD
   body{ padding-left: var(--sidebar-width, 220px); }
   /* Content needs the same slide-over feel as the sidebar itself, so
      the padding that reserves its space is animated too — otherwise
@@ -348,6 +359,9 @@ body {
 @media (max-width: 768px){
   .sidebar-resize-handle{ display: none; }
   .sidebar-collapse-toggle{ display: none; }
+=======
+  body{ padding-left: 220px; }
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 }
 
 /* LAYOUT */
@@ -400,16 +414,28 @@ body {
 .table-wrap {
   overflow-x: auto;
   scrollbar-width: thin;
+<<<<<<< HEAD
   scrollbar-color: var(--scrollbar-thumb) transparent;
+=======
+  scrollbar-color: var(--muted, #888) transparent;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   padding-bottom: 4px;
 }
 .table-wrap::-webkit-scrollbar { height: 12px; }
 .table-wrap::-webkit-scrollbar-track {
+<<<<<<< HEAD
   background: var(--scrollbar-track);
   border-radius: 8px;
 }
 .table-wrap::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
+=======
+  background: var(--panel-2, rgba(127,127,127,0.08));
+  border-radius: 8px;
+}
+.table-wrap::-webkit-scrollbar-thumb {
+  background: var(--muted, #888);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   border-radius: 8px;
   border: 3px solid transparent;
   background-clip: padding-box;
@@ -418,6 +444,7 @@ body {
   background: var(--accent, #4f46e5);
   background-clip: padding-box;
 }
+<<<<<<< HEAD
 
 /* Page scrollbar — same thin, theme-aware treatment as .table-wrap
    above so the browser's default (light, chunky) bar doesn't clash
@@ -442,6 +469,8 @@ html::-webkit-scrollbar-thumb:hover {
   background: var(--accent, #4f46e5);
   background-clip: padding-box;
 }
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 table { width: 100%; border-collapse: collapse; }
 th {
   background: #f0f0f0;
@@ -485,6 +514,7 @@ tr:hover td { background: #fafafa; }
 .btn-outline { background: #fff; color: #444; border: 1px solid #ccc; }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 
+<<<<<<< HEAD
 /* TABS — used by the Fees page's own sections and by the
    Active/Left sub-page switcher on Students and Staff (Students'
    "Left Students" and Staff's "Left Staff" used to be separate
@@ -517,6 +547,8 @@ tr:hover td { background: #fafafa; }
   }
 }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 /* FORMS */
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -773,6 +805,7 @@ tr:hover td { background: #fafafa; }
   --panel:transparent; --panel-2:rgba(127,127,127,0.08);
   --shadow-sm:0 1px 2px rgba(0,0,0,.06); --shadow-md:0 4px 10px rgba(0,0,0,.1);
   --shadow-lg:0 10px 30px rgba(0,0,0,.14);
+<<<<<<< HEAD
   /* Sidebar width — dragged live via .sidebar-resize-handle (JS sets
      this same var inline) and restored from localStorage before first
      paint (see SIDEBAR_WIDTH_INIT_SCRIPT). This value is just the
@@ -782,6 +815,8 @@ tr:hover td { background: #fafafa; }
      dark mode below swaps in a darker, higher-contrast pair so
      scrollbars don't look like a stray light-mode leftover. */
   --scrollbar-thumb:#888; --scrollbar-track:rgba(127,127,127,0.08);
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   /* status colors (light) */
   --success-bg:#e6f4ea; --success-text:#2d7a4f; --success-fg:#2d7a4f;
@@ -799,11 +834,14 @@ tr:hover td { background: #fafafa; }
   --panel:rgba(255,255,255,0.03); --panel-2:rgba(255,255,255,0.06);
   --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 14px rgba(0,0,0,.45);
   --shadow-lg:0 14px 36px rgba(0,0,0,.55);
+<<<<<<< HEAD
   /* Darker scrollbar for dark mode — a light-grey thumb (the --muted
      fallback used elsewhere) would stand out too much against these
      dark surfaces, so this pair is deliberately darker than --muted
      rather than reusing it. */
   --scrollbar-thumb:#4a4e63; --scrollbar-track:rgba(0,0,0,0.25);
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   /* status colors (dark) — brightened + desaturated for legibility on
      dark surfaces, not just a lighter version of the light-mode hue */
@@ -990,6 +1028,7 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
   .navbar-right{ order:2; gap:2px; }
   .navbar nav{ order:3; flex:0 0 100%; height:40px; display:flex; overflow-x:auto; gap:4px; -webkit-overflow-scrolling:touch; }
   .navbar nav a{ margin-left:0; flex:0 0 auto; white-space:nowrap; padding:10px 10px; min-height:40px; display:inline-flex; align-items:center; }
+<<<<<<< HEAD
   .nav-section{ flex-direction:row; flex:0 0 auto; }
   /* The vertical dropdown submenu doesn't fit the mobile top bar's
      horizontal-scroll link row — each Fees/Tracking/etc. page already
@@ -997,6 +1036,8 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
      caret/submenu here rather than trying to force it into the row. */
   .nav-submenu-caret{ display:none; }
   .nav-submenu{ display:none; }
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   .navbar-user{ display:none; }
   .navbar .logout-btn{ margin-left:6px; padding:8px 12px; font-size:12px; min-height:40px; }
   .theme-toggle{ width:40px; height:40px; }
@@ -1071,6 +1112,7 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
 .perm-user-title{ font-size:16px; font-weight:700; color:var(--text); }
 .perm-user-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
 
+<<<<<<< HEAD
 /* List of every account under a role (a role can now have any number
    of accounts, not just one) — reuses .perm-row for each account line
    but wraps them in a bordered panel so they read as a distinct group
@@ -1080,6 +1122,8 @@ select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
   background:var(--panel, transparent);
 }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 /* Two clearly separated sections per role card: which nav pages are
    visible, and what each page's add/edit/delete actions allow. Each
    section heading sits on its own bordered strip so the eye can jump

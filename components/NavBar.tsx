@@ -9,13 +9,20 @@
 
 'use client';
 
+<<<<<<< HEAD
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+=======
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 import { getUser, logout, api } from '@/lib/api-client';
 import { isAliUser, hasPageAccess } from '@/lib/permissions-client';
 import { initTheme, toggleTheme } from '@/lib/theme';
 
+<<<<<<< HEAD
 /** Sidebar resize constraints (desktop only) and localStorage key. */
 const SIDEBAR_MIN_WIDTH = 180;
 const SIDEBAR_MAX_WIDTH = 420;
@@ -49,6 +56,8 @@ export const SIDEBAR_COLLAPSED_INIT_SCRIPT = `(function(){
   }
 })();`;
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 const ALL_PAGES = [
   { href: '/dashboard', label: 'Dashboard', key: 'dashboard' },
   { href: '/fees', label: 'Fees', key: 'fees' },
@@ -57,6 +66,7 @@ const ALL_PAGES = [
   { href: '/tracking', label: 'Tracking', key: 'tracking' },
   { href: '/balance-sheet', label: 'Total', key: 'balance-sheet' },
   { href: '/students', label: 'Students', key: 'students' },
+<<<<<<< HEAD
   { href: '/staff', label: 'Staff', key: 'staff' },
 ] as const;
 // Left Students / Left Staff used to be their own top-level sidebar
@@ -104,6 +114,12 @@ const SECTION_PARENT: Record<string, string> = {
   'left-students': 'students',
   'left-staff': 'staff',
 };
+=======
+  { href: '/left-students', label: 'Left Students', key: 'left-students' },
+  { href: '/staff', label: 'Staff', key: 'staff' },
+  { href: '/left-staff', label: 'Left Staff', key: 'left-staff' },
+] as const;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
 /**
  * Each page's primary GET endpoint(s), so hovering/focusing a nav link
@@ -235,6 +251,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
  */
 export default function NavBar({ activePage }: { activePage: string }) {
   const pathname = usePathname();
+<<<<<<< HEAD
   const searchParams = useSearchParams();
   const [, forceRerender] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -347,6 +364,14 @@ export default function NavBar({ activePage }: { activePage: string }) {
     window.addEventListener('mouseup', onMouseUp);
   };
 
+=======
+  const [, forceRerender] = useState(0);
+
+  useEffect(() => {
+    initTheme();
+  }, []);
+
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const user = getUser();
   const pages = ALL_PAGES.filter((p) => p.key === 'dashboard' || hasPageAccess(p.key));
   const showPermissions = isAliUser();
@@ -357,13 +382,18 @@ export default function NavBar({ activePage }: { activePage: string }) {
   };
 
   return (
+<<<<<<< HEAD
     <>
     <nav className="navbar" ref={navRef as React.RefObject<HTMLElement>}>
+=======
+    <nav className="navbar">
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       <Link className="brand" href="/dashboard">
         <img src="/icon-192.png" alt="" width={22} height={22} className="brand-icon" />
         <span>School Mgmt</span>
       </Link>
       <nav>
+<<<<<<< HEAD
         {pages.map((p) => {
           const submenu = SUBMENUS[p.key];
           const isOpen = openSection === p.key;
@@ -433,6 +463,20 @@ export default function NavBar({ activePage }: { activePage: string }) {
             </div>
           );
         })}
+=======
+        {pages.map((p) => (
+          <Link
+            key={p.key}
+            href={p.href}
+            className={activePage === p.key || pathname === p.href ? 'active' : ''}
+            onMouseEnter={() => prefetchPageData(p.key)}
+            onFocus={() => prefetchPageData(p.key)}
+          >
+            <span className="nav-icon">{NAV_ICONS[p.key]}</span>
+            <span className="nav-label">{p.label}</span>
+          </Link>
+        ))}
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         {showPermissions && (
           <Link href="/permissions" className={activePage === 'permissions' ? 'active' : ''}>
             <span className="nav-icon">{NAV_ICONS['permissions']}</span>
@@ -467,6 +511,7 @@ export default function NavBar({ activePage }: { activePage: string }) {
         </button>
       </div>
     </nav>
+<<<<<<< HEAD
     {/* Drag handle and collapse toggle live OUTSIDE the <nav>
         deliberately: .navbar gets `transform: translateX(...)` while
         collapsed (see [data-sidebar-collapsed] .navbar in style.css),
@@ -504,3 +549,7 @@ export default function NavBar({ activePage }: { activePage: string }) {
     </>
   );
 }
+=======
+  );
+}
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e

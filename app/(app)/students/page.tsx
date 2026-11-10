@@ -16,7 +16,10 @@ import { hasPerm, loadMyPermissions, refreshMyPermissions } from '@/lib/permissi
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 import { bindPanelKeyboardNavigation } from '@/lib/api-client';
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 interface Student {
   student_id: number;
   first_name: string;
@@ -74,9 +77,12 @@ export default function StudentsPage() {
 }
 
 function StudentsContent() {
+<<<<<<< HEAD
   // Left Students now lives at its own /left-students route (see
   // NavBar) rather than as a tab here.
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -96,6 +102,7 @@ function StudentsContent() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileStudent, setProfileStudent] = useState<Student | null>(null);
 
+<<<<<<< HEAD
   // Change Section flow: step 1 picks a student (search reuses the same
   // pattern as the main table search), step 2 confirms the move. Kept
   // as its own small modal rather than repurposing the edit modal so
@@ -109,6 +116,8 @@ function StudentsContent() {
   const [changeSectionSection, setChangeSectionSection] = useState('');
   const [changeSectionSaving, setChangeSectionSaving] = useState(false);
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [permTick, setPermTick] = useState(0); // bump to re-render after permissions change
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -266,6 +275,7 @@ function StudentsContent() {
     if (s) openModal(s);
   }
 
+<<<<<<< HEAD
   // ── Change Section flow ─────────────────────────────────────────
   function openChangeSectionModal() {
     setChangeSectionStep('pick');
@@ -375,6 +385,8 @@ function StudentsContent() {
       .slice(0, 20); // cap results — this is a picker, not the full table
   }, [allStudents, changeSectionSearch]);
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   async function saveStudent() {
     const id = form.student_id;
     const body = {
@@ -696,6 +708,7 @@ function StudentsContent() {
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Change Section Modal — two steps: pick a student, then
           confirm the new class/section. */}
       <div className={`modal-overlay${changeSectionOpen ? ' open' : ''}`}>
@@ -839,6 +852,8 @@ function StudentsContent() {
         </div>
       </div>
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       {/* Profile Modal */}
       <div className={`modal-overlay${profileOpen ? ' open' : ''}`}>
         <div className="modal">
@@ -900,11 +915,14 @@ function StudentsContent() {
         <div className="page-header">
           <h1 className="page-title">Students</h1>
           <div className="flex gap-2.5 items-center">
+<<<<<<< HEAD
             {hasPerm('students.edit') && (
               <button className="btn btn-outline transition-transform duration-150 active:scale-95" onClick={openChangeSectionModal}>
                 Change Section
               </button>
             )}
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
             {hasPerm('students.add') && (
               <button className="btn btn-primary transition-transform duration-150 active:scale-95" onClick={() => openModal()}>
                 + Add Student
@@ -913,7 +931,10 @@ function StudentsContent() {
           </div>
         </div>
 
+<<<<<<< HEAD
         <>
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         <div className="card mb-4">
           <div className="filters">
             <input
@@ -1057,7 +1078,10 @@ function StudentsContent() {
             </div>
           )}
         </div>
+<<<<<<< HEAD
         </>
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       </div>
     </>
   );

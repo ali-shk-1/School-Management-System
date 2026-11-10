@@ -85,6 +85,7 @@ interface ClassFeeRow {
   updated_by?: string | null;
 }
 
+<<<<<<< HEAD
 interface StudentFeeRow {
   student_fee_id: number;
   student_id: number;
@@ -101,6 +102,8 @@ interface StudentFeeRow {
   } | null;
 }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 // Canonical class list for the Total Fee settings page — playgroup/
 // prep/nursery come first (as taught), then grades 1-10. students.class
 // is free text in the DB, so this is just the standard set offered in
@@ -238,7 +241,11 @@ export default function FeesPage() {
   );
 }
 
+<<<<<<< HEAD
 const FEE_TABS = ['monthly', 'daily', 'monthly-defaulters', 'history', 'total-fee', 'student-fee'] as const;
+=======
+const FEE_TABS = ['monthly', 'daily', 'monthly-defaulters', 'history', 'total-fee'] as const;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 type FeeTab = (typeof FEE_TABS)[number];
 
 function isFeeTab(v: string | null): v is FeeTab {
@@ -260,10 +267,13 @@ function FeesContent() {
   const canEditClassFees = () => hasPerm('class-fees.edit');
   const canDeleteClassFees = () => hasPerm('class-fees.delete');
 
+<<<<<<< HEAD
   const canAddStudentFees = () => hasPerm('student-fees.add');
   const canEditStudentFees = () => hasPerm('student-fees.edit');
   const canDeleteStudentFees = () => hasPerm('student-fees.delete');
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allStudents, setAllStudents] = useState<StudentLite[]>([]);
 
   const initialTabParam = searchParams.get('tab');
@@ -309,10 +319,13 @@ function FeesContent() {
   const [dailyLoaded, setDailyLoaded] = useState(false);
 
   // ---- Monthly defaulters tab ----
+<<<<<<< HEAD
   // Blank by default (same pattern as Tracking's Student Track): nothing is
   // fetched/rendered until the user either toggles a specific month or
   // presses "Show All" (which shows every overdue month). "Clear" resets
   // back to blank.
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [defMonthFilter, setDefMonthFilter] = useState(monthStr);
   const [defFilterBoys, setDefFilterBoys] = useState(false);
   const [defFilterGirls, setDefFilterGirls] = useState(false);
@@ -322,11 +335,14 @@ function FeesContent() {
   const [defaultersList, setDefaultersList] = useState<FeeRow[]>([]);
   const [defaultersLoadFailed, setDefaultersLoadFailed] = useState(false);
   const [defaultersLoaded, setDefaultersLoaded] = useState(false);
+<<<<<<< HEAD
   // false/null = blank state; 'month' = showing only defMonthFilter's
   // defaulters; 'all' = "Show All" pressed, showing every overdue month.
   const [defaultersView, setDefaultersView] = useState<'blank' | 'month' | 'all'>('blank');
   const DEFAULTERS_PAGE_SIZE = 100;
   const [defaultersPage, setDefaultersPage] = useState(1);
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   // ---- History tab ----
   const [historySearch, setHistorySearch] = useState('');
@@ -346,6 +362,7 @@ function FeesContent() {
   const [editingClassFeeId, setEditingClassFeeId] = useState<number | null>(null);
   const [editingClassFeeAmount, setEditingClassFeeAmount] = useState('');
 
+<<<<<<< HEAD
   // ---- Students Fee tab (per-student total fee override) ----
   const [studentFees, setStudentFees] = useState<StudentFeeRow[]>([]);
   const [studentFeesLoaded, setStudentFeesLoaded] = useState(false);
@@ -362,6 +379,8 @@ function FeesContent() {
   const STUDENT_FEE_PAGE_SIZE = 20;
   const [studentFeePage, setStudentFeePage] = useState(1);
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   // ---- Print mode toggle ----
   const [thermalMode, setThermalMode] = useState(false);
 
@@ -392,6 +411,7 @@ function FeesContent() {
 
   async function loadStudents() {
     try {
+<<<<<<< HEAD
       // ?limit=0 = unbounded. /api/students defaults to a 100-row page
       // (see app/api/students/route.ts) for the Students list's own
       // pagination — but this page loads the roster once into memory
@@ -400,6 +420,9 @@ function FeesContent() {
       // the 100th (ordered by class/section/roll_no) from all three
       // pickers, even though they exist and show up fine on /students.
       const res = await api('GET', '/api/students?limit=0');
+=======
+      const res = await api('GET', '/api/students');
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       const list = normalizeList<StudentLite>(res, ['students', 'data']);
       list.sort((a, b) => a.class.localeCompare(b.class) || (a.roll_no ?? 0) - (b.roll_no ?? 0));
       setAllStudents(list);
@@ -465,6 +488,7 @@ function FeesContent() {
   async function loadMonthlyDefaulters() {
     setDefaultersLoadFailed(false);
     try {
+<<<<<<< HEAD
       // The API returns every overdue month up to & including the given
       // month (cumulative). "Show All" asks for everything through the
       // current month; toggling a specific month still fetches through
@@ -472,6 +496,9 @@ function FeesContent() {
       // month client-side (see filteredDefaulters below).
       const targetMonth = defaultersView === 'all' ? monthStr : defMonthFilter;
       const raw = await api('GET', `/api/fees/monthly-defaulters?month=${targetMonth}-01`);
+=======
+      const raw = await api('GET', `/api/fees/monthly-defaulters?month=${defMonthFilter}-01`);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       setDefaultersList(normalizeList<FeeRow>(raw, ['defaulters', 'data']));
       setDefaultersLoaded(true);
     } catch {
@@ -569,6 +596,7 @@ function FeesContent() {
     return CLASS_LIST.filter((c) => !used.has(c));
   }, [classFees]);
 
+<<<<<<< HEAD
   async function loadStudentFees() {
     setStudentFeesLoadFailed(false);
     try {
@@ -696,6 +724,8 @@ function FeesContent() {
     return classFeeRow ? +classFeeRow.total_fee : null;
   }
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   // class_section is stored as e.g. "5-A" / "Nursery-A" — strip the
   // trailing "-<section>" to get the plain class label for lookups.
   function baseClassFromSection(classSection: string): string {
@@ -742,11 +772,17 @@ function FeesContent() {
   }, [tab, dailyDateFilter]);
 
   useEffect(() => {
+<<<<<<< HEAD
     // Blank by default: only fetch once the user has picked a month to
     // toggle to, or pressed "Show All" — never just on opening the tab.
     if (tab === 'monthly-defaulters' && defaultersView !== 'blank') loadMonthlyDefaulters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, defMonthFilter, defaultersView]);
+=======
+    if (tab === 'monthly-defaulters') loadMonthlyDefaulters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, defMonthFilter]);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   useEffect(() => {
     if (historyStudentId) loadStudentHistory(historyStudentId);
@@ -758,6 +794,7 @@ function FeesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+<<<<<<< HEAD
   // Loaded lazily on first need — either the Students Fee tab itself,
   // or opening Record Payment (its Total Fee field next to Father's
   // Name looks student overrides up), whichever happens first.
@@ -766,17 +803,26 @@ function FeesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, payModalOpen]);
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   useLiveUpdates({
     'fees.changed': () => {
       loadMonthlyRecords();
       loadStats();
       loadDailyRecords();
+<<<<<<< HEAD
       if (defaultersView !== 'blank') loadMonthlyDefaulters();
+=======
+      loadMonthlyDefaulters();
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     },
     'students.changed': () => loadStudents(),
     'permissions.changed': () => refreshMyPermissions(() => setPermTick((n) => n + 1)),
     'class-fees.changed': () => loadClassFees(),
+<<<<<<< HEAD
     'student-fees.changed': () => loadStudentFees(),
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   });
 
   useEffect(() => {
@@ -792,8 +838,11 @@ function FeesContent() {
       if (payWrap && !payWrap.contains(e.target as Node)) setPayResultsOpen(false);
       const histWrap = historyWrapRef.current;
       if (histWrap && !histWrap.contains(e.target as Node)) setHistoryResultsOpen(false);
+<<<<<<< HEAD
       const newStudentFeeWrap = newStudentFeeWrapRef.current;
       if (newStudentFeeWrap && !newStudentFeeWrap.contains(e.target as Node)) setNewStudentFeeResultsOpen(false);
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     }
     document.addEventListener('click', onDocClick);
     return () => document.removeEventListener('click', onDocClick);
@@ -853,17 +902,23 @@ function FeesContent() {
 
   // ---------------- Monthly defaulters filtering ----------------
   const filteredDefaulters = useMemo(() => {
+<<<<<<< HEAD
     // Blank by default — nothing renders until "Show All" or a month toggle.
     if (defaultersView === 'blank') return [];
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     const q = deferredDefSearch.toLowerCase().trim();
     let filtered = defaultersList.filter(
       (r) => `${r.first_name} ${r.last_name}`.toLowerCase().includes(q) || String(r.roll_no || '').toLowerCase().includes(q)
     );
+<<<<<<< HEAD
     // Toggled to a single month: narrow the (cumulative) fetched data down
     // to just that month's defaulters, same as if it were fetched alone.
     if (defaultersView === 'month') {
       filtered = filtered.filter((r) => String(r.academic_month || '').slice(0, 7) === defMonthFilter);
     }
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     const wantBoys = defFilterBoys,
       wantGirls = defFilterGirls;
     if (wantBoys !== wantGirls) {
@@ -876,6 +931,7 @@ function FeesContent() {
       filtered = filtered.filter((r) => String(r.section ?? '').toLowerCase() === defSectionFilter.toLowerCase());
     }
     return filtered;
+<<<<<<< HEAD
   }, [defaultersList, deferredDefSearch, defFilterBoys, defFilterGirls, defClassFilter, defSectionFilter, defaultersView, defMonthFilter]);
 
   // Reset to page 1 whenever the visible result set changes shape.
@@ -888,6 +944,10 @@ function FeesContent() {
     [filteredDefaulters, defaultersPage]
   );
   const groupedDefaulters = useMemo(() => groupDefaultersByMonth(pagedDefaulters), [pagedDefaulters]);
+=======
+  }, [defaultersList, deferredDefSearch, defFilterBoys, defFilterGirls, defClassFilter, defSectionFilter]);
+  const groupedDefaulters = useMemo(() => groupDefaultersByMonth(filteredDefaulters), [filteredDefaulters]);
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
   const historyTotals = useMemo(() => {
     let totalDue = 0,
@@ -1083,7 +1143,10 @@ function FeesContent() {
       await api('DELETE', `/api/fees/${paymentId}`);
       showToast('Payment record deleted.', 'success');
       loadMonthlyRecords();
+<<<<<<< HEAD
       if (dailyLoaded) loadDailyRecords();
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       loadStats();
     } catch (e: any) {
       showToast(e.message, 'error');
@@ -1100,7 +1163,10 @@ function FeesContent() {
         showToast('Payment record updated.', 'success');
         closePayModal();
         loadMonthlyRecords();
+<<<<<<< HEAD
         if (dailyLoaded) loadDailyRecords();
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         loadStats();
       } catch (e: any) {
         showToast(e.message, 'error');
@@ -1606,16 +1672,24 @@ function FeesContent() {
   @page { size: 80mm auto; margin: 0; }
   body {
     font-family: Arial, Helvetica, sans-serif;
+<<<<<<< HEAD
     color: #000; width: 68mm; margin: 0 auto; padding: 2mm 4mm;
+=======
+    color: #000; width: 76mm; margin: 0 auto; padding: 2mm;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     font-size: 12px; line-height: 1.5;
     font-weight: 400;
     -webkit-font-smoothing: none;
   }
   .receipt-box {
     border: 1.5px solid #000;
+<<<<<<< HEAD
     outline: 1.5px solid #000;
     outline-offset: -1.5px;
     padding: 8px 10px;
+=======
+    padding: 8px;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   }
   .center { text-align: center; }
   .school-name { font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
@@ -1624,9 +1698,15 @@ function FeesContent() {
   .divider { border-top: 1px dashed #000; margin: 7px 0; }
   .divider-solid { border-top: 1.5px solid #000; margin: 7px 0; }
   .section-box { border: 1px solid #000; border-radius: 3px; padding: 6px 7px; margin: 7px 0; }
+<<<<<<< HEAD
   .row { display: flex; justify-content: space-between; gap: 8px; padding: 1px 2px 1px 0; }
   .row span:first-child { color: #000; font-weight: 700; flex-shrink: 0; }
   .row span:last-child { font-weight: 400; text-align: right; padding-right: 2px; word-break: break-word; }
+=======
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
+  .row span:first-child { color: #000; font-weight: 700; }
+  .row span:last-child { font-weight: 400; text-align: right; }
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   .title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; border-bottom: 1px dashed #000; padding-bottom: 3px; }
   .amount-paid { font-weight: 700 !important; }
   .strong-value { font-weight: 700 !important; }
@@ -1637,7 +1717,11 @@ function FeesContent() {
   .footer .thanks { font-weight: 700; margin-bottom: 3px; font-size: 12px; }
   .footer .credit { font-size: 9px; color: #000; margin-top: 8px; margin-bottom: 0; font-weight: 700; }
   @media print {
+<<<<<<< HEAD
     html, body { width: 68mm; padding: 2mm 4mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+=======
+    html, body { width: 76mm; padding: 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   }
 </style>
 </head>
@@ -1752,6 +1836,7 @@ function FeesContent() {
             </div>
             {payStudentSel && (() => {
               const selStudent = allStudents.find((st) => st.student_id === payStudentSel);
+<<<<<<< HEAD
               const selTotalFee = totalFeeForStudent(selStudent);
               return (
                 <>
@@ -1769,6 +1854,14 @@ function FeesContent() {
                   )}
                 </>
               );
+=======
+              return selStudent?.father_name ? (
+                <div className="form-group -mt-1">
+                  <label htmlFor="fee-father-s-name">Father's Name</label>
+                  <input id="fee-father-s-name" type="text" value={selStudent.father_name} disabled readOnly />
+                </div>
+              ) : null;
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
             })()}
             <div className="form-group">
               <label htmlFor="fee-academic-month">Academic Month *</label>
@@ -1983,9 +2076,12 @@ function FeesContent() {
           <button className={`tab-btn${tab === 'total-fee' ? ' active' : ''}`} onClick={() => setTab('total-fee')}>
             Total Fee
           </button>
+<<<<<<< HEAD
           <button className={`tab-btn${tab === 'student-fee' ? ' active' : ''}`} onClick={() => setTab('student-fee')}>
             Students Fee
           </button>
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         </div>
 
         {/* MONTHLY TAB */}
@@ -2191,7 +2287,11 @@ function FeesContent() {
                       <th>Month</th>
                       <th>Amount Paid</th>
                       <th>Time</th>
+<<<<<<< HEAD
                       <th>Actions</th>
+=======
+                      <th>Receipt</th>
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                     </tr>
                   </thead>
                   <tbody>
@@ -2230,6 +2330,7 @@ function FeesContent() {
                           <td className="text-muted text-xs">
                             {r.payment_date ? localPaymentDate(new Date(r.payment_date)).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
                           </td>
+<<<<<<< HEAD
                           <td className="whitespace-nowrap">
                             <button className="btn btn-outline btn-sm" title="Print receipt" onClick={() => printDailyReceipt(i)}>
                               🖨
@@ -2248,6 +2349,12 @@ function FeesContent() {
                                 🗑
                               </button>
                             )}
+=======
+                          <td>
+                            <button className="btn btn-outline btn-sm" title="Print receipt" onClick={() => printDailyReceipt(i)}>
+                              🖨
+                            </button>
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                           </td>
                         </tr>
                       ))
@@ -2270,6 +2377,7 @@ function FeesContent() {
             <div className="card mb-3">
               <div className="filters">
                 <label className="text-secondary text-xs" htmlFor="fees-defaulters-tab-month">Month:</label>
+<<<<<<< HEAD
                 <input
                   id="fees-defaulters-tab-month"
                   type="month"
@@ -2279,6 +2387,9 @@ function FeesContent() {
                     setDefaultersView('month');
                   }}
                 />
+=======
+                <input id="fees-defaulters-tab-month" type="month" value={defMonthFilter} onChange={(e) => setDefMonthFilter(e.target.value)} />
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                 <input
                   type="text"
                   placeholder="Class"
@@ -2306,6 +2417,7 @@ function FeesContent() {
                   value={defSearch}
                   onChange={(e) => setDefSearch(e.target.value)}
                 />
+<<<<<<< HEAD
                 <button
                   className="btn btn-outline btn-sm"
                   onClick={() => setDefaultersView('all')}
@@ -2328,6 +2440,9 @@ function FeesContent() {
                   </button>
                 )}
                 {defaultersView !== 'blank' && defaultersLoaded && !defaultersLoadFailed && (
+=======
+                {defaultersLoaded && !defaultersLoadFailed && (
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                   <span className="text-secondary text-sm font-semibold ml-auto">
                     {filteredDefaulters.length} defaulter month{filteredDefaulters.length !== 1 ? 's' : ''} total
                   </span>
@@ -2354,6 +2469,7 @@ function FeesContent() {
                     </tr>
                   </thead>
                   <tbody>
+<<<<<<< HEAD
                     {defaultersView === 'blank' ? (
                       <tr>
                         <td colSpan={12} className="empty">
@@ -2361,6 +2477,9 @@ function FeesContent() {
                         </td>
                       </tr>
                     ) : !defaultersLoaded ? (
+=======
+                    {!defaultersLoaded ? (
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                       <tr>
                         <td colSpan={12} className="loading">
                           Loading…
@@ -2432,6 +2551,7 @@ function FeesContent() {
                   </tbody>
                 </table>
               </div>
+<<<<<<< HEAD
               {defaultersView !== 'blank' && defaultersLoaded && !defaultersLoadFailed && defaultersTotalPages > 1 && (
                 <div className="pagination-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '12px 0' }}>
                   <button
@@ -2453,6 +2573,8 @@ function FeesContent() {
                   </button>
                 </div>
               )}
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
             </div>
           </div>
         )}
@@ -2717,6 +2839,7 @@ function FeesContent() {
             </div>
           </div>
         )}
+<<<<<<< HEAD
 
         {/* STUDENTS FEE TAB (per-student total fee override) */}
         {tab === 'student-fee' && (
@@ -2911,6 +3034,8 @@ function FeesContent() {
             </div>
           </div>
         )}
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       </div>
 
       <style jsx>{`

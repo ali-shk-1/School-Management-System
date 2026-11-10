@@ -99,6 +99,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: 'class-fees.delete', label: 'Delete class total fee' },
     ],
   },
+<<<<<<< HEAD
   {
     key: 'student-fees',
     label: 'Students Fee (Fees > Students Fee)',
@@ -108,6 +109,8 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
       { key: 'student-fees.delete', label: 'Delete student total fee' },
     ],
   },
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 ];
 
 export const PERMISSION_KEYS: string[] = PERMISSION_GROUPS.flatMap((g) =>
@@ -134,6 +137,7 @@ export const MANAGEABLE_ROLES: string[] = [
   'viewer',
 ];
 
+<<<<<<< HEAD
 /**
  * Fallback labels shown when a role has no custom display_name set in the
  * roles table yet. Used only as a default — ali can override per-role via
@@ -147,6 +151,8 @@ export const DEFAULT_ROLE_LABELS: Record<string, string> = {
   viewer: 'Viewer',
 };
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 type PermissionMap = Record<string, boolean>;
 
 export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
@@ -178,9 +184,12 @@ export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
     'class-fees.add': true,
     'class-fees.edit': true,
     'class-fees.delete': false,
+<<<<<<< HEAD
     'student-fees.add': true,
     'student-fees.edit': true,
     'student-fees.delete': false,
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   },
   principal: {
     'students.add': true,
@@ -210,9 +219,12 @@ export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
     'class-fees.add': true,
     'class-fees.edit': true,
     'class-fees.delete': false,
+<<<<<<< HEAD
     'student-fees.add': true,
     'student-fees.edit': true,
     'student-fees.delete': false,
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   },
   vice_principal: {
     'students.add': true,
@@ -242,9 +254,12 @@ export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
     'class-fees.add': true,
     'class-fees.edit': true,
     'class-fees.delete': false,
+<<<<<<< HEAD
     'student-fees.add': true,
     'student-fees.edit': true,
     'student-fees.delete': false,
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   },
   accountant: {
     'students.add': false,
@@ -274,9 +289,12 @@ export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
     'class-fees.add': true,
     'class-fees.edit': true,
     'class-fees.delete': false,
+<<<<<<< HEAD
     'student-fees.add': true,
     'student-fees.edit': true,
     'student-fees.delete': false,
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   },
   viewer: {
     'students.add': false,
@@ -306,9 +324,12 @@ export const DEFAULT_PERMISSIONS: Record<string, PermissionMap> = {
     'class-fees.add': false,
     'class-fees.edit': false,
     'class-fees.delete': false,
+<<<<<<< HEAD
     'student-fees.add': false,
     'student-fees.edit': false,
     'student-fees.delete': false,
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   },
 };
 

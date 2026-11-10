@@ -13,7 +13,10 @@ import { showToast } from '@/lib/toast';
 import { hasPerm, loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 interface Staff {
   staff_id: number;
   name: string;
@@ -56,9 +59,12 @@ export default function StaffPage() {
 }
 
 function StaffContent() {
+<<<<<<< HEAD
   // Left Staff now lives at its own /left-staff route (see NavBar)
   // rather than as a tab here.
 
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -503,7 +509,10 @@ function StaffContent() {
           </div>
         </div>
 
+<<<<<<< HEAD
         <>
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         <div className="card mb-4">
           <div className="filters">
             <input
@@ -621,7 +630,10 @@ function StaffContent() {
             </table>
           </div>
         </div>
+<<<<<<< HEAD
         </>
+=======
+>>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       </div>
     </>
   );
