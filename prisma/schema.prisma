@@ -229,7 +229,11 @@ model FeePayment {
 }
 
 model PaymentReceipt {
-  receipt_no     Int         @id @default(autoincrement())
+  // receipt_id is the real primary key. receipt_no is NOT unique: one
+  // submission covering several months creates one row per month that all
+  // share the same receipt_no (see Migration-by-Ali/009).
+  receipt_id     Int         @id @default(autoincrement())
+  receipt_no     Int         @default(autoincrement())
   payment_id     Int?        @unique
   student_id     Int
   roll_no        String?     @db.VarChar
@@ -246,6 +250,7 @@ model PaymentReceipt {
 
   @@index([student_id])
   @@index([issued_at])
+  @@index([receipt_no])
   // GET /api/fees/receipts?search= does LOWER(student_name) LIKE
   // '%term%' / roll_no LIKE / receipt_no LIKE — a leading-wildcard LIKE
   // can't use a plain btree index (see the students name-search

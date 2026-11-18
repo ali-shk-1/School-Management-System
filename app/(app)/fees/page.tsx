@@ -379,6 +379,13 @@ function FeesContent() {
   const [payMonthDisabled, setPayMonthDisabled] = useState(false);
   const [payDue, setPayDue] = useState('');
   const [payPaid, setPayPaid] = useState('');
+  // Extra months added to the same receipt (the first month is payMonth /
+  // payDue / payPaid above).
+  const [extraMonths, setExtraMonths] = useState<{ id: number; month: string; due: string; paid: string }[]>([]);
+  const extraMonthIdRef = useRef(0);
+  // Fee record already on file for the selected student, keyed by "YYYY-MM"
+  // (due/paid summed over that month's rows). Used to warn on extra months.
+  const [existingByMonth, setExistingByMonth] = useState<Record<string, { due: number; paid: number }>>({});
   const [existingPayInfo, setExistingPayInfo] = useState('');
   const [payRecentHistory, setPayRecentHistory] = useState<FeeRow[]>([]);
   const [showCustomDateGroup, setShowCustomDateGroup] = useState(false);
@@ -390,6 +397,9 @@ function FeesContent() {
   // ---- Receipt modal ----
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
+  // One submission can cover several months: one ReceiptData per month, all
+  // sharing the same receipt_no. The modal's Print button prints all of them.
+  const [receiptList, setReceiptList] = useState<ReceiptData[]>([]);
 
   async function loadStudents() {
     try {
@@ -942,6 +952,8 @@ function FeesContent() {
     setPayMonth(monthStr);
     setPayDue('');
     setPayPaid('');
+    setExtraMonths([]);
+    setExistingByMonth({});
     setExistingPayInfo('');
     setPayRecentHistory([]);
     setPayModalTitle('Record Fee Payment');
@@ -952,7 +964,29 @@ function FeesContent() {
     setPayModalOpen(true);
   }
 
+  function nextMonthAfter(ym: string): string {
+    const m = String(ym || '').match(/^(\d{4})-(\d{2})$/);
+    if (!m) return monthStr;
+    const d = new Date(Number(m[1]), Number(m[2]), 1); // month index = next month
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+  function addExtraMonth() {
+    const last = extraMonths.length ? extraMonths[extraMonths.length - 1].month : payMonth;
+    extraMonthIdRef.current += 1;
+    setExtraMonths((rows) => [
+      ...rows,
+      { id: extraMonthIdRef.current, month: nextMonthAfter(last), due: payDue, paid: '' },
+    ]);
+  }
+  function updateExtraMonth(id: number, patch: Partial<{ month: string; due: string; paid: string }>) {
+    setExtraMonths((rows) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  function removeExtraMonth(id: number) {
+    setExtraMonths((rows) => rows.filter((r) => r.id !== id));
+  }
+
   function closePayModal() {
+    setExtraMonths([]);
     setEditingPaymentId(null);
     setPayStudentDisabled(false);
     setPayMonthDisabled(false);
@@ -1023,6 +1057,7 @@ function FeesContent() {
   async function onStudentChangeFor(id: number | string, month: string, forceRefresh = false) {
     if (!id) {
       setExistingPayInfo('');
+      setExistingByMonth({});
       setPayRecentHistory([]);
       return;
     }
@@ -1047,6 +1082,12 @@ function FeesContent() {
           byMonth.set(key, { academic_month: key, amount_due: due, amount_paid: paid });
         }
       });
+
+      const existingMap: Record<string, { due: number; paid: number }> = {};
+      byMonth.forEach((v, k) => {
+        existingMap[k] = { due: v.amount_due, paid: v.amount_paid };
+      });
+      setExistingByMonth(existingMap);
 
       // Always show the last 4 calendar months (relative to the month
       // currently selected in the form), one row each, even if some of
@@ -1130,6 +1171,31 @@ function FeesContent() {
       if (!proceed) return;
     }
 
+    // Extra months on the same receipt: each needs a distinct month and
+    // the same due/paid rules as the first one.
+    const seen = new Set<string>([payMonth]);
+    for (const row of extraMonths) {
+      const rDue = parseFloat(row.due) || 0;
+      const rPaid = parseFloat(row.paid) || 0;
+      if (!row.month) {
+        showToast('Select a month for every extra month row.', 'error');
+        return;
+      }
+      if (seen.has(row.month)) {
+        showToast(`${monthLabel(row.month + '-01')} is selected more than once on this receipt.`, 'error');
+        return;
+      }
+      seen.add(row.month);
+      if (rPaid < 0 || rDue < 0) {
+        showToast('Amounts cannot be negative.', 'error');
+        return;
+      }
+      if (rDue > 0 && rPaid <= 0) {
+        showToast(`Enter a payment amount for ${monthLabel(row.month + '-01')}.`, 'error');
+        return;
+      }
+    }
+
     const useCD = canCustomDateFees() && useCustomDate;
     if (useCD && !customDate) {
       showToast('Pick a deposit date, or uncheck the custom date option.', 'error');
@@ -1154,6 +1220,18 @@ function FeesContent() {
       if (!proceed) return;
     }
 
+    // Same duplicate-month guard for the extra months on this receipt.
+    const dupExtras = extraMonths.filter((r) => existingByMonth[r.month]);
+    if (dupExtras.length) {
+      const studentLabel =
+        allStudents.find((s) => s.student_id === parseInt(String(payStudentSel), 10))?.first_name || 'this student';
+      const names = dupExtras.map((r) => monthLabel(r.month + '-01')).join(', ');
+      const proceed = confirm(
+        `A fee record already exists for ${studentLabel} for ${names}.\n\nSubmitting again will add ANOTHER entry for ${dupExtras.length > 1 ? 'those months' : 'that month'}. Continue?`
+      );
+      if (!proceed) return;
+    }
+
     try {
       const body: any = {
         student_id: parseInt(String(payStudentSel), 10),
@@ -1163,15 +1241,25 @@ function FeesContent() {
         print_mode: getPrintMode(),
       };
       if (useCD) body.payment_date = customDate;
+      if (extraMonths.length) {
+        body.payments = [
+          { academic_month: payMonth + '-01', amount_due: due, amount_paid: paid },
+          ...extraMonths.map((r) => ({
+            academic_month: r.month + '-01',
+            amount_due: parseFloat(r.due) || 0,
+            amount_paid: parseFloat(r.paid) || 0,
+          })),
+        ];
+      }
 
       const res = await api('POST', '/api/fees', body);
-      showToast('Payment recorded!', 'success');
+      showToast(extraMonths.length ? `Payment recorded for ${extraMonths.length + 1} months!` : 'Payment recorded!', 'success');
       closePayModal();
       loadMonthlyRecords();
       loadStats();
 
-      const p = (res as any)?.payment;
-      if (p) openReceiptModal(p);
+      const list: FeeRow[] = (res as any)?.payments?.length ? (res as any).payments : (res as any)?.payment ? [(res as any).payment] : [];
+      if (list.length) openReceiptModal(list);
     } catch (e: any) {
       showToast(e.message, 'error');
     }
@@ -1227,8 +1315,10 @@ function FeesContent() {
     };
   }
 
-  function openReceiptModal(paymentRow: FeeRow) {
-    setReceiptData(normalizeReceiptData(paymentRow));
+  function openReceiptModal(paymentRows: FeeRow | FeeRow[]) {
+    const list = (Array.isArray(paymentRows) ? paymentRows : [paymentRows]).map(normalizeReceiptData);
+    setReceiptList(list);
+    setReceiptData(list[0] || null);
     setReceiptModalOpen(true);
   }
   function closeReceiptModal() {
@@ -1556,18 +1646,24 @@ function FeesContent() {
   }
 
   function printReceipt() {
-    if (receiptData) printReceiptWith(receiptData);
+    if (receiptList.length) printReceiptWith(receiptList);
+    else if (receiptData) printReceiptWith(receiptData);
   }
 
-  function printReceiptWith(d: ReceiptData) {
+  // Accepts one receipt or several (a multi-month submission). All of them
+  // print from a single window so pop-up blockers only have to allow one,
+  // one receipt (page) per month, all showing the same receipt number.
+  function printReceiptWith(d: ReceiptData | ReceiptData[]) {
+    const list = Array.isArray(d) ? d : [d];
+    if (!list.length) return;
     if (getPrintMode() === 'thermal') {
-      printThermalReceipt(d);
+      printThermalReceipt(list);
     } else {
-      printPaperReceipt(d);
+      printPaperReceipt(list);
     }
   }
 
-  function printPaperReceipt(d: ReceiptData) {
+  function printPaperReceipt(list: ReceiptData[]) {
     const win = window.open('', '_blank');
     if (!win) {
       showToast('Please allow pop-ups to print the receipt.', 'error');
@@ -1576,11 +1672,83 @@ function FeesContent() {
     const printedAt = new Date();
     const SCHOOL_LOGO_URL = new URL('school-logo.png', window.location.href).href;
 
+    // `multi` = every month covered by this receipt number. When given, ONE
+    // receipt is rendered listing all months (instead of one page per month).
+    const fmt = (n: number) => n.toLocaleString('en-PK');
+    const multiFeeTable = (ds: ReceiptData[]) => {
+      const hasFee = ds.every((x) => x.total_fee != null);
+      const hasDisc = hasFee && ds.some((x) => (x.discount || 0) > 0);
+      const sum = (f: (x: ReceiptData) => number) => ds.reduce((a, x) => a + f(x), 0);
+      return `
+    <table class="fee">
+      <thead><tr><th>Month</th>${hasFee ? '<th>Total Fee</th>' : ''}${hasDisc ? '<th>Discount</th>' : ''}<th>${hasDisc ? 'Payable' : 'Amount Due'}</th><th>Amount Paid</th><th>Balance</th></tr></thead>
+      <tbody>
+        ${ds
+          .map(
+            (x) => `<tr><td>${escapeHtml(x.academic_month)}</td>${hasFee ? `<td>${fmt(x.total_fee || 0)}</td>` : ''}${hasDisc ? `<td class="paid">${(x.discount || 0) > 0 ? '-' + fmt(x.discount || 0) : '0'}</td>` : ''}<td>${fmt(x.amount_due)}</td><td class="paid">${fmt(x.amount_paid)}</td><td class="${x.balance > 0 ? 'due' : ''}">${fmt(x.balance)}</td></tr>`
+          )
+          .join('')}
+        <tr style="background:#f0f0f0;"><td>Total</td>${hasFee ? `<td>${fmt(sum((x) => x.total_fee || 0))}</td>` : ''}${hasDisc ? `<td class="paid">-${fmt(sum((x) => x.discount || 0))}</td>` : ''}<td>${fmt(sum((x) => x.amount_due))}</td><td class="paid">${fmt(sum((x) => x.amount_paid))}</td><td class="${sum((x) => x.balance) > 0 ? 'due' : ''}">${fmt(sum((x) => x.balance))}</td></tr>
+      </tbody>
+    </table>`;
+    };
+
+    const renderOne = (d: ReceiptData, multi?: ReceiptData[]) => `
+  <div class="receipt">
+    <div class="header">
+      <img src="${SCHOOL_LOGO_URL}" onerror="this.style.display='none'" alt="Logo"/>
+      <div>
+        <div class="school-name">${SCHOOL_NAME}</div>
+        <div class="sub">Fee Payment Receipt</div>
+        <div class="affiliation">Affiliated with Board of Intermediate and Secondary Education Rawalpindi</div>
+      </div>
+    </div>
+
+    <div class="title">Fee Receipt</div>
+    <div class="meta">Receipt No: ${escapeHtml(d.receipt_no)} &nbsp;|&nbsp; Fee Submitted: ${fmtPaymentDateTime(d.payment_date)} &nbsp;|&nbsp; Printed: ${fmtDateTime(printedAt)}</div>
+    ${d.photo_url ? `<div class="receipt-photo"><img src="${escapeHtml(d.photo_url)}" alt="Student photo" onerror="this.style.display='none'"/></div>` : ''}
+    <table class="info">
+      <tr><td class="label">Student Name</td><td>${escapeHtml(d.student_name)}</td>
+          <td class="label">Roll No.</td><td>${escapeHtml(d.roll_no)}</td></tr>
+      <tr><td class="label">Class / Section</td><td>${escapeHtml(d.class_section)}</td>
+          <td class="label">Father's Name</td><td>${escapeHtml(d.father_name)}</td></tr>
+      <tr><td class="label">Contact</td><td>${escapeHtml(d.contact_1)}</td>
+          <td class="label">${multi ? 'Fee Months' : 'Fee Month'}</td><td>${escapeHtml(multi ? multi.map((x) => x.academic_month).join(', ') : d.academic_month)}</td></tr>
+    </table>
+
+    ${multi ? multiFeeTable(multi) : `<table class="fee">
+      <thead><tr><th>Description</th><th>Amount (Rs.)</th></tr></thead>
+      <tbody>
+        ${d.total_fee != null ? `<tr><td>Total Fee</td><td>${d.total_fee.toLocaleString('en-PK')}</td></tr>` : ''}
+        ${d.discount != null && d.discount > 0 ? `<tr><td>Discount</td><td class="paid">-${d.discount.toLocaleString('en-PK')}</td></tr>` : ''}
+        <tr><td>${d.discount != null && d.discount > 0 ? 'Payable after Discount' : 'Amount Due'}</td><td>${d.amount_due.toLocaleString('en-PK')}</td></tr>
+        <tr><td>Amount Paid</td><td class="paid">${d.amount_paid.toLocaleString('en-PK')}</td></tr>
+        <tr><td>Balance</td><td class="${d.balance > 0 ? 'due' : ''}">${d.balance.toLocaleString('en-PK')}</td></tr>
+      </tbody>
+    </table>`}
+
+    ${(multi ? multi.some((x) => (x.discount || 0) > 0) : d.discount != null && d.discount > 0) ? '<div class="discount-note">* This discount is valid for 1 year only.</div>' : ''}
+
+    <div class="footer">
+      <div class="sign-block">
+        <div class="sign-line">Signature</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-line">Stamp</div>
+      </div>
+    </div>
+
+    <div class="remarks"><span class="label">Remarks:</span><span class="line">&nbsp;</span></div>
+
+    <div class="thanks">Thank you for your payment!</div>
+    <div class="credit">Software provided by alixtech.vercel.app &nbsp;|&nbsp; 0310-5203080</div>
+  </div>`;
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8"/>
-<title>Fee Receipt — ${escapeHtml(d.student_name)}</title>
+<title>Fee Receipt — ${escapeHtml(list[0].student_name)}</title>
 <style>
   * { box-sizing: border-box; }
   @page { size: A4; margin: 14mm; }
@@ -1613,62 +1781,16 @@ function FeesContent() {
   .meta { text-align: right; font-size: 10px; color: #707070; margin-top: -5px; margin-bottom: 12px; }
   .thanks { text-align: center; font-size: 12px; font-weight: 700; color: #444; margin-top: 24px; }
   .credit { text-align: center; font-size: 8px; color: #707070; margin-top: 6px; }
+  .receipt + .receipt { page-break-before: always; break-before: page; margin-top: 24px; }
   @media print {
     body { padding: 0; }
+    .receipt + .receipt { margin-top: 0; }
     .receipt { border: none; }
   }
 </style>
 </head>
 <body>
-  <div class="receipt">
-    <div class="header">
-      <img src="${SCHOOL_LOGO_URL}" onerror="this.style.display='none'" alt="Logo"/>
-      <div>
-        <div class="school-name">${SCHOOL_NAME}</div>
-        <div class="sub">Fee Payment Receipt</div>
-        <div class="affiliation">Affiliated with Board of Intermediate and Secondary Education Rawalpindi</div>
-      </div>
-    </div>
-
-    <div class="title">Fee Receipt</div>
-    <div class="meta">Receipt No: ${escapeHtml(d.receipt_no)} &nbsp;|&nbsp; Fee Submitted: ${fmtPaymentDateTime(d.payment_date)} &nbsp;|&nbsp; Printed: ${fmtDateTime(printedAt)}</div>
-    ${d.photo_url ? `<div class="receipt-photo"><img src="${escapeHtml(d.photo_url)}" alt="Student photo" onerror="this.style.display='none'"/></div>` : ''}
-    <table class="info">
-      <tr><td class="label">Student Name</td><td>${escapeHtml(d.student_name)}</td>
-          <td class="label">Roll No.</td><td>${escapeHtml(d.roll_no)}</td></tr>
-      <tr><td class="label">Class / Section</td><td>${escapeHtml(d.class_section)}</td>
-          <td class="label">Father's Name</td><td>${escapeHtml(d.father_name)}</td></tr>
-      <tr><td class="label">Contact</td><td>${escapeHtml(d.contact_1)}</td>
-          <td class="label">Fee Month</td><td>${escapeHtml(d.academic_month)}</td></tr>
-    </table>
-
-    <table class="fee">
-      <thead><tr><th>Description</th><th>Amount (Rs.)</th></tr></thead>
-      <tbody>
-        ${d.total_fee != null ? `<tr><td>Total Fee</td><td>${d.total_fee.toLocaleString('en-PK')}</td></tr>` : ''}
-        ${d.discount != null && d.discount > 0 ? `<tr><td>Discount</td><td class="paid">-${d.discount.toLocaleString('en-PK')}</td></tr>` : ''}
-        <tr><td>${d.discount != null && d.discount > 0 ? 'Payable after Discount' : 'Amount Due'}</td><td>${d.amount_due.toLocaleString('en-PK')}</td></tr>
-        <tr><td>Amount Paid</td><td class="paid">${d.amount_paid.toLocaleString('en-PK')}</td></tr>
-        <tr><td>Balance</td><td class="${d.balance > 0 ? 'due' : ''}">${d.balance.toLocaleString('en-PK')}</td></tr>
-      </tbody>
-    </table>
-
-    ${d.discount != null && d.discount > 0 ? '<div class="discount-note">* This discount is valid for 1 year only.</div>' : ''}
-
-    <div class="footer">
-      <div class="sign-block">
-        <div class="sign-line">Signature</div>
-      </div>
-      <div class="sign-block">
-        <div class="sign-line">Stamp</div>
-      </div>
-    </div>
-
-    <div class="remarks"><span class="label">Remarks:</span><span class="line">&nbsp;</span></div>
-
-    <div class="thanks">Thank you for your payment!</div>
-    <div class="credit">Software provided by alixtech.vercel.app &nbsp;|&nbsp; 0310-5203080</div>
-  </div>
+${list.length > 1 ? renderOne(list[0], list) : renderOne(list[0])}
   <script>
     window.onload = function () { window.print(); };
   <\/script>
@@ -1680,7 +1802,7 @@ function FeesContent() {
     win.document.close();
   }
 
-  function printThermalReceipt(d: ReceiptData) {
+  function printThermalReceipt(list: ReceiptData[]) {
     const printedAt = new Date();
     const win = window.open('', '_blank');
     if (!win) {
@@ -1690,11 +1812,69 @@ function FeesContent() {
 
     const row = (label: string, value: string | number, strong = false) => `<div class="row${strong ? ' strong' : ''}"><span>${label}</span><span>${value}</span></div>`;
 
+    const renderOne = (d: ReceiptData, multi?: ReceiptData[]) => `
+<div class="receipt-box">
+  <div class="center">
+    <div class="school-name">${SCHOOL_NAME}</div>
+    <div class="sub">Fee Payment Receipt</div>
+    <div class="contact-line">051-4831802 &nbsp; 051-4834045</div>
+  </div>
+  <div class="divider-solid"></div>
+
+  ${row('Receipt No.', escapeHtml(d.receipt_no))}
+  ${row('Fee Submitted', fmtPaymentDateTime(d.payment_date))}
+  ${row('Printed', fmtDateTime(printedAt))}
+
+  <div class="section-box">
+    <div class="title">Student Details</div>
+    ${row('Name', `<span class="strong-value">${escapeHtml(d.student_name)}</span>`)}
+    ${row('Roll No.', escapeHtml(d.roll_no))}
+    ${row('Class', escapeHtml(d.class_section))}
+    ${row('Father Name', escapeHtml(d.father_name))}
+  </div>
+
+  ${
+    multi
+      ? multi
+          .map(
+            (x) => `<div class="section-box">
+    <div class="title">Fee Details — ${escapeHtml(x.academic_month)}</div>
+    ${x.total_fee != null ? row('Total Fee', x.total_fee.toLocaleString('en-PK')) : ''}
+    ${x.discount != null && x.discount > 0 ? row('Discount', `-${x.discount.toLocaleString('en-PK')}`) : ''}
+    ${row(x.discount != null && x.discount > 0 ? 'Payable after Discount' : 'Amount Due', x.amount_due.toLocaleString('en-PK'))}
+    ${row('Amount Paid', x.amount_paid.toLocaleString('en-PK'))}
+    ${row('Balance', x.balance.toLocaleString('en-PK'))}
+  </div>`
+          )
+          .join('')
+      : `<div class="section-box">
+    <div class="title">Fee Details</div>
+    ${row('Month', escapeHtml(d.academic_month))}
+    ${d.total_fee != null ? row('Total Fee', d.total_fee.toLocaleString('en-PK')) : ''}
+    ${d.discount != null && d.discount > 0 ? row('Discount', `-${d.discount.toLocaleString('en-PK')}`) : ''}
+    ${row(d.discount != null && d.discount > 0 ? 'Payable after Discount' : 'Amount Due', d.amount_due.toLocaleString('en-PK'))}
+    ${row('Balance', d.balance.toLocaleString('en-PK'))}
+  </div>`
+  }
+
+  <div class="total-box">
+    ${row(multi ? 'Total Paid' : 'Amount Paid', `<span class="amount-paid">Rs. ${(multi ? multi.reduce((a, x) => a + x.amount_paid, 0) : d.amount_paid).toLocaleString('en-PK')}</span>`)}
+  </div>
+
+  ${(multi ? multi.some((x) => (x.discount || 0) > 0) : d.discount != null && d.discount > 0) ? '<div class="discount-note center">* This discount is valid for 1 year only.</div>' : ''}
+
+  <div class="footer">
+    <div class="thanks">Thank you</div>
+    <div>Stamp</div>
+    <div class="credit">Software provided by alixtech.vercel.app<br/>0310-5203080</div>
+  </div>
+</div>`;
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8"/>
-<title>Receipt — ${escapeHtml(d.student_name)}</title>
+<title>Receipt — ${escapeHtml(list[0].student_name)}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { margin: 0 !important; padding: 0 !important; }
@@ -1731,53 +1911,15 @@ function FeesContent() {
   .footer { margin-top: 10px; font-size: 10px; text-align: center; font-weight: 400; padding-top: 8px; border-top: 1px dashed #000; }
   .footer .thanks { font-weight: 700; margin-bottom: 3px; font-size: 12px; }
   .footer .credit { font-size: 9px; color: #000; margin-top: 8px; margin-bottom: 0; font-weight: 700; }
+  .receipt-box + .receipt-box { page-break-before: always; break-before: page; margin-top: 10px; }
   @media print {
+    .receipt-box + .receipt-box { margin-top: 0; }
     html, body { width: 68mm; padding: 2mm 4mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
 <body>
-<div class="receipt-box">
-  <div class="center">
-    <div class="school-name">${SCHOOL_NAME}</div>
-    <div class="sub">Fee Payment Receipt</div>
-    <div class="contact-line">051-4831802 &nbsp; 051-4834045</div>
-  </div>
-  <div class="divider-solid"></div>
-
-  ${row('Receipt No.', escapeHtml(d.receipt_no))}
-  ${row('Fee Submitted', fmtPaymentDateTime(d.payment_date))}
-  ${row('Printed', fmtDateTime(printedAt))}
-
-  <div class="section-box">
-    <div class="title">Student Details</div>
-    ${row('Name', `<span class="strong-value">${escapeHtml(d.student_name)}</span>`)}
-    ${row('Roll No.', escapeHtml(d.roll_no))}
-    ${row('Class', escapeHtml(d.class_section))}
-    ${row('Father Name', escapeHtml(d.father_name))}
-  </div>
-
-  <div class="section-box">
-    <div class="title">Fee Details</div>
-    ${row('Month', escapeHtml(d.academic_month))}
-    ${d.total_fee != null ? row('Total Fee', d.total_fee.toLocaleString('en-PK')) : ''}
-    ${d.discount != null && d.discount > 0 ? row('Discount', `-${d.discount.toLocaleString('en-PK')}`) : ''}
-    ${row(d.discount != null && d.discount > 0 ? 'Payable after Discount' : 'Amount Due', d.amount_due.toLocaleString('en-PK'))}
-    ${row('Balance', d.balance.toLocaleString('en-PK'))}
-  </div>
-
-  <div class="total-box">
-    ${row('Amount Paid', `<span class="amount-paid">Rs. ${d.amount_paid.toLocaleString('en-PK')}</span>`)}
-  </div>
-
-  ${d.discount != null && d.discount > 0 ? '<div class="discount-note center">* This discount is valid for 1 year only.</div>' : ''}
-
-  <div class="footer">
-    <div class="thanks">Thank you</div>
-    <div>Stamp</div>
-    <div class="credit">Software provided by alixtech.vercel.app<br/>0310-5203080</div>
-  </div>
-</div>
+${list.length > 1 ? renderOne(list[0], list) : renderOne(list[0])}
   <script>
     window.onload = function () { window.print(); };
   <\/script>
@@ -1888,6 +2030,105 @@ function FeesContent() {
                 <input id="fee-amount-paid-rs" type="number" step="0.01" placeholder="0" value={payPaid} onChange={(e) => setPayPaid(e.target.value)} onWheel={(e) => (e.target as HTMLInputElement).blur()} />
               </div>
             </div>
+            {!editingPaymentId && (
+              <div style={{ marginBottom: 14 }}>
+                {extraMonths.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      padding: '12px 14px',
+                      marginBottom: 12,
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+                      <div className="text-muted text-xs">Additional month (same receipt)</div>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => removeExtraMonth(r.id)}
+                        aria-label="Remove this month"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor={`fee-extra-month-${r.id}`}>Academic Month *</label>
+                      <input
+                        id={`fee-extra-month-${r.id}`}
+                        type="month"
+                        value={r.month}
+                        onChange={(e) => updateExtraMonth(r.id, { month: e.target.value })}
+                      />
+                    </div>
+                    {existingByMonth[r.month] && (
+                      <div
+                        className="p-2.5 rounded mb-2.5 text-xs font-medium"
+                        style={{
+                          background: 'var(--danger-bg)',
+                          border: '1px solid var(--danger-fg)',
+                          borderLeft: '4px solid var(--danger-fg)',
+                          color: 'var(--danger-text)',
+                        }}
+                      >
+                        {`⚠️ Fee already submitted for ${monthLabel(r.month + '-01')}: Due ${formatMoney(
+                          existingByMonth[r.month].due
+                        )}, Paid ${formatMoney(existingByMonth[r.month].paid)}, Balance ${formatMoney(
+                          existingByMonth[r.month].due - existingByMonth[r.month].paid
+                        )}. Submitting again will add another entry for this month.`}
+                      </div>
+                    )}
+                    <div className="form-row" style={{ marginBottom: 0 }}>
+                      <div className="form-group">
+                        <label htmlFor={`fee-extra-due-${r.id}`}>Amount Due (Rs.)</label>
+                        <input
+                          id={`fee-extra-due-${r.id}`}
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={r.due}
+                          onChange={(e) => updateExtraMonth(r.id, { due: e.target.value })}
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor={`fee-extra-paid-${r.id}`}>Amount Paid (Rs.) *</label>
+                        <input
+                          id={`fee-extra-paid-${r.id}`}
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={r.paid}
+                          onChange={(e) => updateExtraMonth(r.id, { paid: e.target.value })}
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={addExtraMonth}
+                  disabled={extraMonths.length >= 11}
+                >
+                  + Add another month
+                </button>
+                {extraMonths.length > 0 && (
+                  <div className="text-muted text-xs" style={{ marginTop: 10, lineHeight: 1.5 }}>
+                    One receipt number is shared by all {extraMonths.length + 1} months. They print together on a
+                    single receipt, and each month is still saved separately so its due, paid and balance stay correct.
+                    {' '}Total paying now:{' '}
+                    <strong>
+                      {formatMoney(
+                        (parseFloat(payPaid) || 0) + extraMonths.reduce((sum, r) => sum + (parseFloat(r.paid) || 0), 0)
+                      )}
+                    </strong>
+                  </div>
+                )}
+              </div>
+            )}
             {showCustomDateGroup && (
               <div className="form-group">
                 <label>
@@ -1984,6 +2225,11 @@ function FeesContent() {
             </div>
             {receiptData && (
               <div className="popup-panel rounded-md px-3 py-2.5 leading-relaxed">
+                {receiptList.length > 1 && (
+                  <div className="mb-1.5">
+                    Receipt No: <strong>#{receiptData.receipt_no}</strong> &nbsp;({receiptList.length} months)
+                  </div>
+                )}
                 {receiptData.photo_url && (
                   <div className="mb-3 flex justify-center">
                     <img
@@ -2001,18 +2247,22 @@ function FeesContent() {
                 <div>
                   <strong>{receiptData.student_name}</strong> &nbsp; (Roll {receiptData.roll_no}, Class {receiptData.class_section})
                 </div>
-                <div>
-                  Month: <strong>{receiptData.academic_month}</strong>
-                </div>
-                <div>
-                  Amount Paid: <strong className="fee-paid">{formatMoney(receiptData.amount_paid)}</strong>
-                  {receiptData.balance > 0 && (
-                    <>
-                      {' '}
-                      &nbsp;|&nbsp; Balance: <strong className="fee-unpaid">{formatMoney(receiptData.balance)}</strong>
-                    </>
-                  )}
-                </div>
+                {(receiptList.length ? receiptList : [receiptData]).map((rd, idx) => (
+                  <div key={idx} className={idx > 0 ? 'mt-1.5 pt-1.5 border-t' : ''} style={idx > 0 ? { borderColor: 'var(--border)' } : undefined}>
+                    <div>
+                      Month: <strong>{rd.academic_month}</strong>
+                    </div>
+                    <div>
+                      Amount Paid: <strong className="fee-paid">{formatMoney(rd.amount_paid)}</strong>
+                      {rd.balance > 0 && (
+                        <>
+                          {' '}
+                          &nbsp;|&nbsp; Balance: <strong className="fee-unpaid">{formatMoney(rd.balance)}</strong>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

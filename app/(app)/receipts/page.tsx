@@ -17,6 +17,7 @@ import SheetButtons from '@/components/SheetButtons';
 import type { SheetSpec } from '@/lib/sheet-export';
 
 interface ReceiptRow {
+  receipt_id?: number;
   receipt_no: number | string;
   student_name?: string;
   roll_no?: number | string | null;
@@ -248,7 +249,7 @@ function ReceiptsContent() {
                 </tr>
               ) : (
                 pagedReceipts.map((r) => (
-                  <tr key={r.receipt_no}>
+                  <tr key={r.receipt_id ?? `${r.receipt_no}-${r.academic_month}`}>
                     <td>
                       <strong>#{r.receipt_no}</strong>
                     </td>

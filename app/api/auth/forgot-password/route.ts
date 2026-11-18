@@ -34,6 +34,15 @@ export async function POST(req: NextRequest) {
       select: { user_id: true, username: true, email: true, is_active: true },
     });
 
+    // Account exists but has no email on file: tell the user explicitly
+    // instead of the generic "code sent" message.
+    if (user && user.is_active && !user.email) {
+      return NextResponse.json(
+        { error: 'No email is added to this account. Please contact the administrator.' },
+        { status: 400 }
+      );
+    }
+
     if (user && user.email && user.is_active) {
       const recent = await prisma.passwordReset.findFirst({
         where: {

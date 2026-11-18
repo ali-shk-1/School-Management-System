@@ -65,6 +65,11 @@ function DashboardContent() {
   const [statBalanceHtml, setStatBalanceHtml] = useState('—');
   const [balancePositive, setBalancePositive] = useState(true);
 
+  // Collapsed = fixed-height scroll area; expanded ("Show All") = no limit.
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
+  const COLLAPSED_HEIGHT = 320;
+
   const [todayFeesHtml, setTodayFeesHtml] = useState('Loading…');
   const [defaultersHtml, setDefaultersHtml] = useState('Loading…');
   const [monthlySummaryRows, setMonthlySummaryRows] = useState<React.ReactNode>(
@@ -489,7 +494,10 @@ function DashboardContent() {
             ))}
           </select>
         </div>
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          style={summaryExpanded ? undefined : { maxHeight: COLLAPSED_HEIGHT, overflowY: 'auto' }}
+        >
           <table>
             <thead>
               <tr>
@@ -506,12 +514,20 @@ function DashboardContent() {
             <tbody>{monthlySummaryRows}</tbody>
           </table>
         </div>
+        <div style={{ marginTop: 10, textAlign: 'center' }}>
+          <button className="btn btn-outline" onClick={() => setSummaryExpanded((v) => !v)}>
+            {summaryExpanded ? 'Show Less' : 'Show All'}
+          </button>
+        </div>
       </div>
 
       {/* Recent Expenses */}
       <div className="card">
         <div className="section-title">Recent Expenses (Last 10)</div>
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          style={expensesExpanded ? undefined : { maxHeight: COLLAPSED_HEIGHT, overflowY: 'auto' }}
+        >
           <table>
             <thead>
               <tr>
@@ -524,6 +540,11 @@ function DashboardContent() {
             </thead>
             <tbody>{recentExpensesRows}</tbody>
           </table>
+        </div>
+        <div style={{ marginTop: 10, textAlign: 'center' }}>
+          <button className="btn btn-outline" onClick={() => setExpensesExpanded((v) => !v)}>
+            {expensesExpanded ? 'Show Less' : 'Show All'}
+          </button>
         </div>
       </div>
     </div>

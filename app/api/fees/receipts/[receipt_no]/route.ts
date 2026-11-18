@@ -19,13 +19,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ rece
       FROM payment_receipts pr
       LEFT JOIN fee_payments fp ON fp.payment_id = pr.payment_id
       WHERE pr.receipt_no = ${parseInt(receipt_no, 10)}
+      ORDER BY pr.academic_month ASC, pr.receipt_id ASC
     `;
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'No receipt found with that number.', valid: false }, { status: 404 });
     }
 
-    return NextResponse.json({ valid: true, receipt: rows[0] });
+    // One receipt number can now cover several months (one row each):
+    // `receipt` stays the first row for compatibility, `receipts` has all.
+    return NextResponse.json({ valid: true, receipt: rows[0], receipts: rows });
   } catch (err) {
     return handleApiError(err, 'GET');
   }

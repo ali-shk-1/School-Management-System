@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         WHERE 1=1 ${whereExtra}
       `,
       prisma.$queryRaw<any[]>`
-        SELECT pr.receipt_no, pr.payment_id, pr.student_id, pr.roll_no,
+        SELECT pr.receipt_id, pr.receipt_no, pr.payment_id, pr.student_id, pr.roll_no,
                pr.student_name, pr.class, pr.section, pr.academic_month,
                pr.amount_due, pr.amount_paid, pr.print_mode, pr.issued_at, pr.issued_by,
                s.photo_url
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
         LEFT JOIN students s ON s.student_id = pr.student_id
         WHERE 1=1
         ${whereExtra}
-        ORDER BY pr.receipt_no DESC
+        ORDER BY pr.receipt_no DESC, pr.academic_month ASC, pr.receipt_id ASC
         ${limit != null ? Prisma.sql`LIMIT ${limit} OFFSET ${offset}` : Prisma.empty}
       `,
     ]);

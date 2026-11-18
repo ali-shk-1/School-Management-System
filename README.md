@@ -216,3 +216,15 @@ receive a 6-digit code (valid 10 min, max 5 wrong tries, 60 s resend cooldown) a
    SMTP_PASS="<16-char app password>"
    SMTP_FROM="School Administration <yourschool@gmail.com>"
    ```
+
+
+## One receipt number for several months (new)
+
+On **Fees → Record Fee Payment**, use **+ Add another month** to take several months in one go.
+Each month is still saved as its own fee record and its own receipt row (so due / paid / balance stay
+correct per month), but all of them share ONE receipt number, and **Print** prints one receipt per month.
+
+1. Apply `Migration-by-Ali/009_receipt_no_shared_across_months.sql`, then `npx prisma generate`.
+   (`payment_receipts` gets a new primary key `receipt_id`; `receipt_no` is no longer unique.
+   Existing receipts keep their numbers.)
+2. Receipts page / DB Admin now key rows by `receipt_id`.

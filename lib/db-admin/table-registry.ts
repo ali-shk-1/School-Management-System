@@ -95,7 +95,7 @@ export const TABLE_REGISTRY: TableRegistryEntry[] = [
     prismaModel: 'paymentReceipt',
     dbTable: 'payment_receipts',
     label: 'Payment Receipts',
-    pk: ['receipt_no'],
+    pk: ['receipt_id'],
   },
   {
     prismaModel: 'expenseCategory',
