@@ -15,14 +15,10 @@ import { showToast } from '@/lib/toast';
 import { isAliUser } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 
-<<<<<<< HEAD
 // Built-in fallback labels, used only until ali sets a custom one via the
 // "Rename Role" control (persisted server-side as roles.display_name and
 // returned per-role as `label` in GET /api/permissions).
 const DEFAULT_ROLE_LABELS: Record<string, string> = {
-=======
-const ROLE_LABELS: Record<string, string> = {
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   admin: 'Admin',
   principal: 'Principal',
   vice_principal: 'Vice Principal',
@@ -33,15 +29,13 @@ const ROLE_LABELS: Record<string, string> = {
 interface PermUser {
   user_id: number;
   username: string;
+  email?: string | null;
   is_active: boolean;
 }
 
 interface RoleEntry {
   role: string;
-<<<<<<< HEAD
   label?: string;
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   users: PermUser[];
   permissions: Record<string, boolean>;
   page_visibility?: Record<string, boolean>;
@@ -107,21 +101,20 @@ function PermissionsContent() {
   const [createRoleLabel, setCreateRoleLabel] = useState('');
   const [createUsername, setCreateUsername] = useState('');
   const [createPassword, setCreatePassword] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
 
   // Rename username modal
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameUserId, setRenameUserId] = useState<number | null>(null);
   const [renameUsername, setRenameUsername] = useState('');
+  const [renameEmail, setRenameEmail] = useState('');
 
-<<<<<<< HEAD
   // Rename role (display label) modal
   const [roleRenameModalOpen, setRoleRenameModalOpen] = useState(false);
   const [roleRenameRole, setRoleRenameRole] = useState('');
   const [roleRenameCurrentLabel, setRoleRenameCurrentLabel] = useState('');
   const [roleRenameValue, setRoleRenameValue] = useState('');
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const permDataRef = useRef<PermData | null>(null);
   permDataRef.current = permData;
 
@@ -149,12 +142,8 @@ function PermissionsContent() {
     checkbox.disabled = true;
     try {
       await api('PUT', `/api/permissions/${role}`, { permission_key: key, allowed });
-<<<<<<< HEAD
       const roleLabel = permDataRef.current?.roles.find((r) => r.role === role)?.label || DEFAULT_ROLE_LABELS[role] || role;
       showToast(`${allowed ? 'Enabled' : 'Disabled'} "${key}" for ${roleLabel}.`);
-=======
-      showToast(`${allowed ? 'Enabled' : 'Disabled'} "${key}" for ${ROLE_LABELS[role] || role}.`);
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       setPermData((prev) => {
         if (!prev) return prev;
         const next: PermData = { ...prev, roles: prev.roles.map((r) => ({ ...r, permissions: { ...r.permissions } })) };
@@ -175,12 +164,8 @@ function PermissionsContent() {
     checkbox.disabled = true;
     try {
       await api('PUT', `/api/permissions/${role}/visibility`, { page_key: pageKey, visible });
-<<<<<<< HEAD
       const roleLabel = permDataRef.current?.roles.find((r) => r.role === role)?.label || DEFAULT_ROLE_LABELS[role] || role;
       showToast(`${visible ? 'Showed' : 'Hid'} "${pageKey}" page for ${roleLabel}.`);
-=======
-      showToast(`${visible ? 'Showed' : 'Hid'} "${pageKey}" page for ${ROLE_LABELS[role] || role}.`);
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       setPermData((prev) => {
         if (!prev) return prev;
         const next: PermData = {
@@ -257,6 +242,7 @@ function PermissionsContent() {
     setCreateRoleLabel(roleLabel);
     setCreateUsername('');
     setCreatePassword('');
+    setCreateEmail('');
     setCreateModalOpen(true);
   }
   function closeCreateModal() {
@@ -275,7 +261,12 @@ function PermissionsContent() {
       return;
     }
     try {
-      await api('POST', `/api/permissions/users/${createRole}`, { username, password });
+      const email = createEmail.trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Enter a valid email address.', 'error');
+        return;
+      }
+      await api('POST', `/api/permissions/users/${createRole}`, { username, password, ...(email ? { email } : {}) });
       showToast('Account created.');
       closeCreateModal();
       loadPermissions();
@@ -300,9 +291,10 @@ function PermissionsContent() {
     }
   }
 
-  function openRenameModal(userId: number, username: string) {
+  function openRenameModal(userId: number, username: string, email?: string | null) {
     setRenameUserId(userId);
     setRenameUsername(username);
+    setRenameEmail(email || '');
     setRenameModalOpen(true);
   }
   function closeRenameModal() {
@@ -316,8 +308,13 @@ function PermissionsContent() {
       return;
     }
     try {
-      await api('PUT', `/api/permissions/users/${renameUserId}`, { username });
-      showToast('Username updated.');
+      const email = renameEmail.trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Enter a valid email address.', 'error');
+        return;
+      }
+      await api('PUT', `/api/permissions/users/${renameUserId}`, { username, email });
+      showToast('Account updated.');
       closeRenameModal();
       loadPermissions();
     } catch (e: any) {
@@ -325,7 +322,6 @@ function PermissionsContent() {
     }
   }
 
-<<<<<<< HEAD
   function openRoleRenameModal(role: string, currentLabel: string) {
     setRoleRenameRole(role);
     setRoleRenameCurrentLabel(currentLabel);
@@ -348,8 +344,6 @@ function PermissionsContent() {
     }
   }
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   async function savePassword() {
     if (!pwNew || pwNew.length < 6) {
       showToast('Password must be at least 6 characters.', 'error');
@@ -494,6 +488,19 @@ function PermissionsContent() {
                 onChange={(e) => setCreatePassword(e.target.value)}
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="perm-email">Email / Gmail (optional)</label>
+              <input id="perm-email"
+                type="email"
+                placeholder="name@gmail.com"
+                autoComplete="off"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+              />
+              <div className="text-muted text-xs mt-1">
+                If added, this user can reset a forgotten password with a code sent to this email.
+              </div>
+            </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline" onClick={closeCreateModal}>
                 Cancel
@@ -510,7 +517,7 @@ function PermissionsContent() {
       <div className={`modal-overlay${renameModalOpen ? ' open' : ''}`}>
         <div className="modal max-w-[380px]">
           <div className="modal-header">
-            <h2 className="modal-title">Rename Account — {renameUsername}</h2>
+            <h2 className="modal-title">Edit Account — {renameUsername}</h2>
             <button className="modal-close" onClick={closeRenameModal} aria-label="Close">
               ×
             </button>
@@ -525,6 +532,16 @@ function PermissionsContent() {
                 onChange={(e) => setRenameUsername(e.target.value)}
               />
             </div>
+            <div className="form-group">
+              <label htmlFor="perm-email-2">Email / Gmail (optional)</label>
+              <input id="perm-email-2"
+                type="email"
+                placeholder="name@gmail.com"
+                value={renameEmail}
+                onChange={(e) => setRenameEmail(e.target.value)}
+              />
+              <div className="text-muted text-xs mt-1">Used for password reset OTP. Leave blank to remove.</div>
+            </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-outline" onClick={closeRenameModal}>
                 Cancel
@@ -537,7 +554,6 @@ function PermissionsContent() {
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* Rename Role (display label) Modal */}
       <div className={`modal-overlay${roleRenameModalOpen ? ' open' : ''}`}>
         <div className="modal max-w-[380px]">
@@ -573,8 +589,6 @@ function PermissionsContent() {
         </div>
       </div>
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       <div className="page">
         <div className="page-header">
           <h1 className="page-title">Permissions</h1>
@@ -595,18 +609,11 @@ function PermissionsContent() {
 
         <div className="card mb-4">
           <p className="text-muted text-[13px] leading-[1.6]">
-<<<<<<< HEAD
             Toggle exactly what each role is allowed to do. Turning something off hides that button/action for
             every account with that role, immediately — no re-login required for pages loaded after the change. Ali
             always has every permission and cannot be restricted here. A role can have any number of accounts —
             add as many as you need, and every account under a role shares that role's permission settings. You
             can also rename a role's display label at any time.
-=======
-            Toggle exactly what each account is allowed to do. Turning something off hides that button/action for
-            every user with that role, immediately — no re-login required for pages loaded after the change. Ali
-            always has every permission and cannot be restricted here. Each role has exactly one login account —
-            create it if missing, or enable/disable it without losing its permission settings.
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
           </p>
         </div>
 
@@ -617,22 +624,13 @@ function PermissionsContent() {
             <div className="card loading">Loading permissions…</div>
           ) : (
             permData.roles.map((roleEntry) => {
-<<<<<<< HEAD
               const roleLabel = roleEntry.label || DEFAULT_ROLE_LABELS[roleEntry.role] || roleEntry.role;
-=======
-              const roleLabel = ROLE_LABELS[roleEntry.role] || roleEntry.role;
-              const usernames = roleEntry.users.length
-                ? roleEntry.users.map((u) => `${u.username}${u.is_active ? '' : ' (disabled)'}`).join(', ')
-                : 'No account currently has this role';
-              const firstUser = roleEntry.users[0];
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
               return (
                 <div className="card perm-user-card" key={roleEntry.role}>
                   <div className="perm-user-header">
                     <div>
                       <div className="perm-user-title">{roleLabel}</div>
-<<<<<<< HEAD
                       <div className="perm-user-sub">
                         {roleEntry.users.length
                           ? `${roleEntry.users.length} account${roleEntry.users.length > 1 ? 's' : ''} with this role`
@@ -646,37 +644,10 @@ function PermissionsContent() {
                       >
                         Rename Role
                       </button>
-=======
-                      <div className="perm-user-sub">{usernames}</div>
-                    </div>
-                    {firstUser ? (
-                      <div className="flex gap-2 flex-wrap">
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => openRenameModal(firstUser.user_id, firstUser.username)}
-                        >
-                          Rename
-                        </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => openPwModal(firstUser.user_id, firstUser.username)}
-                        >
-                          Change Password
-                        </button>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => toggleUserActive(firstUser.user_id, firstUser.is_active)}
-                        >
-                          {firstUser.is_active ? 'Disable' : 'Enable'}
-                        </button>
-                      </div>
-                    ) : (
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                       <button
                         className="btn btn-primary btn-sm"
                         onClick={() => openCreateModal(roleEntry.role, roleLabel)}
                       >
-<<<<<<< HEAD
                         Add Account
                       </button>
                     </div>
@@ -688,14 +659,15 @@ function PermissionsContent() {
                         <div className="perm-row" key={u.user_id}>
                           <span>
                             {u.username}
+                            {u.email && <span className="text-muted text-xs"> · {u.email}</span>}
                             {!u.is_active && <span className="text-muted text-xs"> (disabled)</span>}
                           </span>
                           <div className="flex gap-2 flex-wrap">
                             <button
                               className="btn btn-outline btn-sm"
-                              onClick={() => openRenameModal(u.user_id, u.username)}
+                              onClick={() => openRenameModal(u.user_id, u.username, u.email)}
                             >
-                              Rename
+                              Edit
                             </button>
                             <button
                               className="btn btn-outline btn-sm"
@@ -715,13 +687,6 @@ function PermissionsContent() {
                     </div>
                   )}
 
-=======
-                        Create Account
-                      </button>
-                    )}
-                  </div>
-
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
                   <div className="perm-section-title">Nav Pages Visible</div>
                   <div className="perm-pages-grid">
                     {(permData.pages || []).map((p) => (

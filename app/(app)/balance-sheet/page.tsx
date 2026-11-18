@@ -13,6 +13,8 @@ import AuthedPage from '@/components/AuthedPage';
 import { api, dbg, formatDate, formatMoney } from '@/lib/api-client';
 import { loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 
 interface LedgerRow {
   label: string;
@@ -137,6 +139,19 @@ function BalanceSheetContent() {
     setMonthPicker(currentMonthStr);
   }
 
+  function buildSheet(): SheetSpec | null {
+    if (!loaded || loadFailed || rows.length === 0) return null;
+    const period = isYear ? yearPicker : monthPicker;
+    const n = (v: unknown) => Number(v) || 0;
+    return {
+      title: `Balance Sheet – ${isYear ? 'Monthly' : 'Daily'} Ledger`, subtitle: period, fileName: `balance-sheet-${isYear ? 'year' : 'month'}-${period}`,
+      columns: [{ header: isYear ? 'Month' : 'Date', width: 16 }, { header: 'Fee', money: true }, { header: 'Total Fee', money: true }, { header: 'Expense', money: true },
+        { header: 'Total Expense', money: true }, { header: 'Balance', money: true }, { header: 'T.Balance', money: true }],
+      rows: rows.map((r) => [r.label + (r.sunday ? ' (Sun)' : ''), n(r.fee), n(r.total_fee), n(r.expense), n(r.total_expense), n(r.balance), n(r.t_balance)]),
+      totals: ['Total', n(totals.fee), '', n(totals.expense), '', n(totals.balance), ''],
+    };
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -196,7 +211,10 @@ function BalanceSheetContent() {
       </div>
 
       <div className="card">
-        <div className="section-title">{isYear ? 'Monthly Ledger' : 'Daily Ledger'}</div>
+        <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+          <span>{isYear ? 'Monthly Ledger' : 'Daily Ledger'}</span>
+          <span className="flex items-center gap-2"><SheetButtons getSpec={buildSheet} disabled={!loaded || loadFailed || rows.length === 0} /></span>
+        </div>
         <div className="table-wrap">
           <table>
             <thead>

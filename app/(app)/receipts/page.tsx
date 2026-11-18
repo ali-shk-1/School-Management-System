@@ -13,6 +13,8 @@ import Avatar from '@/components/Avatar';
 import { api, dbg, formatDate, formatMoney } from '@/lib/api-client';
 import { loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 
 interface ReceiptRow {
   receipt_no: number | string;
@@ -147,6 +149,24 @@ function ReceiptsContent() {
     [filtered, tablePage]
   );
 
+  function buildSheet(): SheetSpec | null {
+    if (!loaded || loadFailed || filtered.length === 0) return null;
+    const sub: string[] = [];
+    if (from) sub.push(`From ${from}`);
+    if (to) sub.push(`To ${to}`);
+    if (search.trim()) sub.push(`Search: ${search.trim()}`);
+    const tp = filtered.reduce((a, r) => a + (Number(r.amount_paid) || 0), 0);
+    const td = filtered.reduce((a, r) => a + (Number(r.amount_due) || 0), 0);
+    return {
+      title: 'Receipts', subtitle: sub.join(' | ') || undefined, fileName: `receipts-${from || 'all'}${to ? '-to-' + to : ''}`,
+      columns: [{ header: 'Receipt #', width: 10 }, { header: 'Student', width: 24 }, { header: 'Roll', width: 7 }, { header: 'Class', width: 9 }, { header: 'Month', width: 15 },
+        { header: 'Due', money: true }, { header: 'Paid', money: true }, { header: 'Mode', width: 9 }, { header: 'Issued', width: 13 }, { header: 'Issued By', width: 16 }],
+      rows: filtered.map((r) => [`#${r.receipt_no}`, r.student_name || '', r.roll_no ?? '', `${r.class || ''}${r.section ? '-' + r.section : ''}`, monthLabel(r.academic_month),
+        Number(r.amount_due) || 0, Number(r.amount_paid) || 0, r.print_mode === 'thermal' ? 'Thermal' : 'Paper', r.issued_at ? formatDate(r.issued_at) : '', r.issued_by || '']),
+      totals: ['Total', '', '', '', '', td, tp, '', '', ''],
+    };
+  }
+
   return (
     <div className="page">
       <div className="page-header">
@@ -185,6 +205,7 @@ function ReceiptsContent() {
               {filtered.length} receipt{filtered.length === 1 ? '' : 's'}
             </span>
           )}
+          <SheetButtons getSpec={buildSheet} disabled={!loaded || loadFailed || filtered.length === 0} />
         </div>
       </div>
 

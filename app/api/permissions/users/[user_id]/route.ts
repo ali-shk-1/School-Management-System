@@ -5,25 +5,19 @@ import { authenticate, authorizeRoles } from '@/lib/auth';
 import { handleApiError } from '@/lib/apiHandler';
 import { broadcast } from '@/lib/sse';
 import { MANAGEABLE_ROLES } from '@/lib/permissions';
+import { normalizeEmail } from '@/lib/password-reset';
 
 /* ─────────────────────────────────────────
    POST /api/permissions/users/:role — ali only
-   Body: { username, password }
+   Body: { username, password, email? }
    Ported from routes/permissions.js `POST /users/:role`.
 
-<<<<<<< HEAD
    Creates a new login account for a manageable role (admin, principal,
    vice_principal, accountant, viewer). Roles are no longer capped at
    one account each — ali can create as many accounts under a role as
    needed; every account for a role shares that role's permission and
    page-visibility settings, since those are keyed by role_name, not
    by user.
-=======
-   Creates the single login account for a manageable role (admin,
-   principal, vice_principal, accountant, viewer) — each role has exactly
-   one account, same 1:1 model as create-admin.js etc. Fails with 409 if
-   that role already has an account; use rename/reset-password instead.
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
    NOTE: this route's dynamic segment is named [user_id] on disk (shared
    with the PUT handler below) purely because Next.js's App Router
@@ -45,6 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
     const role = String(roleParam || '').toLowerCase();
     const body = await req.json();
     const { username, password } = body;
+    const rawEmail = body.email;
 
     if (!MANAGEABLE_ROLES.includes(role)) {
       return NextResponse.json({ error: `role must be one of: ${MANAGEABLE_ROLES.join(', ')}.` }, { status: 400 });
@@ -59,23 +54,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
       );
     }
 
-<<<<<<< HEAD
-=======
-    const existingForRole = await prisma.user.findFirst({
-      where: { role: { role_name: role } },
-      select: { user_id: true },
-    });
-    if (existingForRole) {
-      return NextResponse.json(
-        { error: `An account already exists for the ${role} role. Rename or reset its password instead.` },
-        { status: 409 }
-      );
-    }
-
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     const dupe = await prisma.user.findUnique({ where: { username: username.trim() } });
     if (dupe) {
       return NextResponse.json({ error: `Username "${username}" is already taken.` }, { status: 409 });
+    }
+
+    // Optional email (used for OTP password reset).
+    let email: string | null = null;
+    if (rawEmail !== undefined && rawEmail !== null && String(rawEmail).trim() !== '') {
+      email = normalizeEmail(rawEmail);
+      if (!email) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
+      const emailTaken = await prisma.user.findUnique({ where: { email }, select: { user_id: true } });
+      if (emailTaken) return NextResponse.json({ error: 'That email is already used by another account.' }, { status: 409 });
     }
 
     // Make sure the role exists (roles for vice_principal/accountant were
@@ -92,9 +82,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ use
         username: username.trim(),
         password_hash: hash,
         role_id: roleRow.role_id,
+        email,
         is_active: true,
       },
-      select: { user_id: true, username: true, is_active: true },
+      select: { user_id: true, username: true, email: true, is_active: true },
     });
 
     broadcast('permissions.changed', { action: 'user_created', role });
@@ -126,6 +117,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ user
     const userId = parseInt(user_id, 10);
     const body = await req.json();
     const { username } = body;
+    const rawEmail = body.email; // undefined = leave unchanged, '' = remove
 
     if (!username || !String(username).trim()) {
       return NextResponse.json({ error: 'username is required.' }, { status: 400 });
@@ -148,10 +140,26 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ user
       return NextResponse.json({ error: `Username "${username}" is already taken.` }, { status: 409 });
     }
 
+    const data: { username: string; email?: string | null } = { username: username.trim() };
+    if (rawEmail !== undefined) {
+      if (rawEmail === null || String(rawEmail).trim() === '') {
+        data.email = null;
+      } else {
+        const email = normalizeEmail(rawEmail);
+        if (!email) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
+        const emailTaken = await prisma.user.findFirst({
+          where: { email, user_id: { not: userId } },
+          select: { user_id: true },
+        });
+        if (emailTaken) return NextResponse.json({ error: 'That email is already used by another account.' }, { status: 409 });
+        data.email = email;
+      }
+    }
+
     const user = await prisma.user.update({
       where: { user_id: userId },
-      data: { username: username.trim() },
-      select: { user_id: true, username: true, role_id: true, is_active: true },
+      data,
+      select: { user_id: true, username: true, email: true, role_id: true, is_active: true },
     });
 
     broadcast('permissions.changed', { action: 'user_updated', user_id: userId });

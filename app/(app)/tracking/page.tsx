@@ -15,6 +15,8 @@ import Avatar from '@/components/Avatar';
 import { api, dbg, formatMoney } from '@/lib/api-client';
 import { loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 
 interface TrackingStudent {
   roll_no?: number | string | null;
@@ -387,6 +389,71 @@ function TrackingContent() {
     (studentTrackBoys !== studentTrackGirls)
   );
 
+
+  // ---- Print (A4) / Excel for each tracking view ----
+  function buildMonthSheet(): SheetSpec | null {
+    if (!filteredStudents.length) return null;
+    const g = filterBoys !== filterGirls ? (filterBoys ? 'Boys only' : 'Girls only') : 'All students';
+    return {
+      title: trackTableTitle, subtitle: g, fileName: `fee-tracking-${monthPicker}`,
+      columns: [{ header: '#', width: 5 }, { header: 'Roll No', width: 8 }, { header: 'Full Name', width: 24 }, { header: 'Class', width: 8 }, { header: 'Sec', width: 6 },
+        { header: 'Father Name', width: 24 }, { header: 'Fee Month', width: 12 }, { header: 'Fee (Due)', money: true }, { header: 'Fee (Paid)', money: true }, { header: 'Balance', money: true }],
+      rows: filteredStudents.map((s, i) => {
+        const due = Number(s.amount_due) || 0, paid = Number(s.amount_paid) || 0;
+        return [i + 1, s.roll_no ?? '', `${s.first_name || ''} ${s.last_name || ''}`.trim(), s.class ?? '', s.section ?? '', s.father_name || '', feeMonthLabel(s), due, paid, due - paid];
+      }),
+      totals: ['', '', '', '', '', '', 'Total', totals.total_due, totals.total_paid, totals.total_balance],
+    };
+  }
+  function buildYearSheet(): SheetSpec | null {
+    if (!yearRows.length) return null;
+    const td = yearRows.reduce((a, r) => a + (Number(r.total_due) || 0), 0);
+    const tp = yearRows.reduce((a, r) => a + (Number(r.total_paid) || 0), 0);
+    return {
+      title: `Fee Tracking – Monthly Breakdown ${yearPicker}`, fileName: `fee-tracking-year-${yearPicker}`,
+      columns: [{ header: 'Month', width: 18 }, { header: 'Students', width: 10 }, { header: 'Fee Due', money: true }, { header: 'Fee Paid', money: true }, { header: 'Balance', money: true }],
+      rows: yearRows.map((r) => {
+        const due = Number(r.total_due) || 0, paid = Number(r.total_paid) || 0;
+        return [r.month_label, r.student_count, due, paid, due - paid];
+      }),
+      totals: ['Total', '', td, tp, td - tp],
+    };
+  }
+  function buildStudentYearSheet(): SheetSpec | null {
+    if (!filteredStudentYearRows.length) return null;
+    const filt: string[] = [];
+    const f = studentTrackSearch;
+    if (f.roll_no.trim()) filt.push(`Roll: ${f.roll_no.trim()}`);
+    if (f.name.trim()) filt.push(`Name: ${f.name.trim()}`);
+    if (f.father_name.trim()) filt.push(`Father: ${f.father_name.trim()}`);
+    if (f.class.trim()) filt.push(`Class: ${f.class.trim()}`);
+    if (f.section.trim()) filt.push(`Sec: ${f.section.trim()}`);
+    if (studentTrackBoys !== studentTrackGirls) filt.push(studentTrackBoys ? 'Boys' : 'Girls');
+    const keys = studentYearMonthKeys;
+    const base = (s: StudentYearRow, i: number) => [i + 1, s.roll_no ?? '', `${s.first_name || ''} ${s.last_name || ''}`.trim(), s.father_name || '', s.class ?? '', s.section ?? ''];
+    const baseCols = [{ header: 'Sr #', width: 6 }, { header: 'Roll', width: 7 }, { header: 'Name', width: 22 }, { header: 'Father Name', width: 22 }, { header: 'Class', width: 7 }, { header: 'Sec', width: 6 }];
+    return {
+      title: 'Student Yearly Track',
+      subtitle: `Session Apr ${STUDENT_TRACK_SESSION_START_YEAR} – Mar ${STUDENT_TRACK_SESSION_START_YEAR + 1}${filt.length ? ' | ' + filt.join(', ') : ''}`,
+      fileName: `student-tracking-${STUDENT_TRACK_SESSION_START_YEAR}`,
+      // Excel: full detail (Date / Due / Paid for every month)
+      columns: [...baseCols, ...keys.flatMap((k) => [{ header: `${monthKeyLabel(k)} Date`, width: 10 }, { header: `${monthKeyLabel(k)} Due`, money: true }, { header: `${monthKeyLabel(k)} Paid`, money: true }])],
+      rows: filteredStudentYearRows.map((s, i) => [...base(s, i), ...keys.flatMap((k) => {
+        const c = s.months[k] || { due: 0, paid: 0, date: null };
+        return [c.date ? c.date.slice(8, 10) + '/' + c.date.slice(5, 7) : '', c.due || '', c.due > 0 ? c.paid : ''];
+      })]),
+      // A4 print: one column per month, shows Paid (or Paid/Due when short)
+      print: {
+        columns: [...baseCols, ...keys.map((k) => ({ header: monthKeyLabel(k), width: 9 }))],
+        rows: filteredStudentYearRows.map((s, i) => [...base(s, i), ...keys.map((k) => {
+          const c = s.months[k];
+          if (!c || !c.due) return '—';
+          return c.paid < c.due ? `${c.paid}/${c.due}` : String(c.paid);
+        })]),
+      },
+    };
+  }
+
   function setCurrentMonth() {
     setMonthPicker(currentMonthStr);
   }
@@ -484,7 +551,10 @@ function TrackingContent() {
           </div>
 
           <div className="card">
-            <div className="section-title">{trackTableTitle}</div>
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>{trackTableTitle}</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildMonthSheet} disabled={!filteredStudents.length} /></span>
+            </div>
             <div className="table-wrap main-track-wrap">
               <table className="main-track-table">
                 <thead>
@@ -555,7 +625,10 @@ function TrackingContent() {
       ) : (
         <div>
           <div className="card">
-            <div className="section-title">Monthly Breakdown</div>
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>Monthly Breakdown</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildYearSheet} disabled={!yearRows.length} /></span>
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -680,7 +753,10 @@ function TrackingContent() {
           </div>
 
           <div className="card">
-            <div className="section-title">Student Yearly Track</div>
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>Student Yearly Track</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildStudentYearSheet} disabled={!filteredStudentYearRows.length} /></span>
+            </div>
             <div
               className="student-year-top-scroll"
               ref={studentYearTopScrollRef}

@@ -9,14 +9,13 @@
 import { useEffect, useDeferredValue, useMemo, useRef, useState } from 'react';
 import AuthedPage from '@/components/AuthedPage';
 import { api, apiForm, formatMoney, formatDate, normalizeList } from '@/lib/api-client';
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 import { showToast } from '@/lib/toast';
 import { hasPerm, loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 interface Staff {
   staff_id: number;
   name: string;
@@ -59,12 +58,9 @@ export default function StaffPage() {
 }
 
 function StaffContent() {
-<<<<<<< HEAD
   // Left Staff now lives at its own /left-staff route (see NavBar)
   // rather than as a tab here.
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
   const [designations, setDesignations] = useState<Designation[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -142,6 +138,24 @@ function StaffContent() {
       return (!q || txt.includes(q)) && matchesDesig && matchesAdmin;
     });
   }, [allStaff, deferredSearch, filterDesig, filterAdmin]);
+
+  function buildStaffSheet(): SheetSpec | null {
+    if (!filtered.length) return null;
+    const sub: string[] = [];
+    if (search.trim()) sub.push(`Search: ${search.trim()}`);
+    if (filterDesig) sub.push(`Designation: ${designations.find((d) => String(d.id) === filterDesig)?.title ?? filterDesig}`);
+    if (filterAdmin) sub.push(filterAdmin === 'none' ? 'Not under any admin' : `Under ${allStaff.find((a) => String(a.staff_id) === filterAdmin)?.name ?? filterAdmin}`);
+    sub.push(`${filtered.length} staff`);
+    const totalSalary = filtered.reduce((a, s) => a + (Number(s.salary) || 0), 0);
+    return {
+      title: 'Staff', subtitle: sub.join(' | '), fileName: 'staff',
+      columns: [{ header: '#', width: 5 }, { header: 'Name', width: 24 }, { header: 'Designation', width: 20 }, { header: 'CNIC', width: 18 }, { header: 'Phone', width: 15 },
+        { header: 'Salary', money: true }, { header: 'Joining Date', width: 13 }, { header: 'Category', width: 11 }, { header: 'Under Admin', width: 20 }],
+      rows: filtered.map((s, i) => [i + 1, s.name, s.designation_title || '', s.cnic, s.phone_no || '', Number(s.salary) || 0,
+        s.joining_date ? formatDate(s.joining_date) : '', s.category === 'category_1' ? 'Category 1' : s.category === 'category_2' ? 'Category 2' : '', s.admin_name || '']),
+      totals: ['', 'Total', '', '', '', totalSalary, '', '', ''],
+    };
+  }
 
   function setPhotoPreviewFor(src: string) {
     setPhotoPreview(src);
@@ -509,10 +523,7 @@ function StaffContent() {
           </div>
         </div>
 
-<<<<<<< HEAD
         <>
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         <div className="card mb-4">
           <div className="filters">
             <input
@@ -542,6 +553,7 @@ function StaffContent() {
             <span className="text-secondary text-sm font-semibold ml-auto">
               {filtered.length} staff member{filtered.length !== 1 ? 's' : ''}
             </span>
+            <SheetButtons getSpec={buildStaffSheet} disabled={!filtered.length} />
           </div>
         </div>
 
@@ -630,10 +642,7 @@ function StaffContent() {
             </table>
           </div>
         </div>
-<<<<<<< HEAD
         </>
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       </div>
     </>
   );

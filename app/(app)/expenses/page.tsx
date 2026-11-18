@@ -7,12 +7,15 @@
  * cards (month/today/year/top-category), category breakdown bars.
  */
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import AuthedPage from '@/components/AuthedPage';
 import { api, dbg, formatDate, formatMoney, normalizeList } from '@/lib/api-client';
 import { showToast } from '@/lib/toast';
 import { hasPerm, loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
+
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 
 interface Category {
   category_id: number;
@@ -56,6 +59,7 @@ function ExpensesContent() {
   const [dateFrom, setDateFrom] = useState(monthStart);
   const [dateTo, setDateTo] = useState(monthEnd);
   const [catFilter, setCatFilter] = useState('');
+  const [view, setView] = useState<'all' | 'daywise'>('all');
 
   const [statMonth, setStatMonth] = useState('—');
   const [statToday, setStatToday] = useState('—');
@@ -178,6 +182,22 @@ function ExpensesContent() {
     setCatFilter('');
   }
 
+  // Day picker used by the Day-wise tab: choosing a day sets From = To = that
+  // day, so the whole page (and Print/Excel) shows only that day's expenses.
+  const selectedDay = dateFrom && dateFrom === dateTo ? dateFrom : '';
+  function pickDay(day: string) {
+    if (!day) return setThisMonth();
+    setDateFrom(day);
+    setDateTo(day);
+  }
+  function shiftDay(delta: number) {
+    const base = selectedDay || todayStr;
+    const [y, m, d] = base.split('-').map(Number);
+    const dt = new Date(y, m - 1, d + delta);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    pickDay(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`);
+  }
+
   const total = expenses ? expenses.reduce((s, r) => s + (+r.amount || 0), 0) : 0;
 
   const catBreakdown = (() => {
@@ -192,6 +212,65 @@ function ExpensesContent() {
       .sort((a, b) => b[1] - a[1])
       .map(([name, amt]) => ({ name, amt, pct: totalAmt > 0 ? Math.round((amt / totalAmt) * 100) : 0 }));
   })();
+
+  function expenseSubtitle(): string {
+    const parts = [selectedDay ? `Date: ${formatDate(selectedDay)}` : `${dateFrom || 'start'} to ${dateTo || 'today'}`];
+    if (catFilter) {
+      const c = categories.find((x) => String(x.category_id) === String(catFilter));
+      if (c) parts.push(`Category: ${c.category_name}`);
+    }
+    return parts.join(' | ');
+  }
+  function buildExpensesSheet(): SheetSpec | null {
+    if (!expenses || !expenses.length) return null;
+    return {
+      title: 'Expenses', subtitle: expenseSubtitle(), fileName: `expenses-${dateFrom || 'start'}-to-${dateTo || 'today'}`,
+      columns: [{ header: '#', width: 5 }, { header: 'Date', width: 13 }, { header: 'Category', width: 20 }, { header: 'Description', width: 40 }, { header: 'Amount', money: true }],
+      rows: expenses.map((r, i) => [i + 1, formatDate(r.created_at), r.category_name || '', r.description || '', +r.amount || 0]),
+      totals: ['', '', '', 'Total', total],
+    };
+  }
+  function buildCategorySheet(): SheetSpec | null {
+    if (!catBreakdown.length) return null;
+    return {
+      title: 'Expenses by Category', subtitle: expenseSubtitle(), fileName: `expenses-by-category-${dateFrom || 'start'}-to-${dateTo || 'today'}`,
+      columns: [{ header: '#', width: 5 }, { header: 'Category', width: 28 }, { header: 'Amount', money: true }, { header: 'Share %', width: 10 }],
+      rows: catBreakdown.map((c, i) => [i + 1, c.name, c.amt, `${c.pct}%`]),
+      totals: ['', 'Total', total, '100%'],
+    };
+  }
+
+  // ---- Day-wise view: same filtered `expenses`, grouped by calendar day ----
+  const dayGroups = (() => {
+    if (!expenses || !expenses.length) return [] as { key: string; items: Expense[]; total: number }[];
+    const map = new Map<string, Expense[]>();
+    expenses.forEach((r) => {
+      const key = String(r.created_at).slice(0, 10);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+      .map(([key, items]) => ({ key, items, total: items.reduce((a, r) => a + (+r.amount || 0), 0) }));
+  })();
+  function dayName(key: string): string {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('en-GB', { weekday: 'long' });
+  }
+  function buildDaywiseSheet(): SheetSpec | null {
+    if (!dayGroups.length) return null;
+    const rows: (string | number)[][] = [];
+    dayGroups.forEach((g) => {
+      g.items.forEach((r, i) => rows.push([i === 0 ? `${formatDate(g.key)} (${dayName(g.key)})` : '', r.category_name || '', r.description || '', +r.amount || 0]));
+      rows.push(['', '', `Day total (${g.items.length} ${g.items.length === 1 ? 'entry' : 'entries'})`, g.total]);
+    });
+    return {
+      title: 'Day-wise Expenses', subtitle: expenseSubtitle(), fileName: `expenses-daywise-${dateFrom || 'start'}-to-${dateTo || 'today'}`,
+      columns: [{ header: 'Date', width: 24 }, { header: 'Category', width: 20 }, { header: 'Description', width: 40 }, { header: 'Amount', money: true }],
+      rows,
+      totals: ['', '', `Grand total (${dayGroups.length} days)`, total],
+    };
+  }
 
   async function editExpense(id: number) {
     try {
@@ -483,10 +562,89 @@ function ExpensesContent() {
           </div>
         </div>
 
-        {/* Two-column layout: table + category breakdown */}
+        <div className="flex gap-0.5 mb-4 border-b border-border overflow-x-auto">
+          <button className={`tab-btn${view === 'all' ? ' active' : ''}`} onClick={() => setView('all')}>
+            All Expenses
+          </button>
+          <button className={`tab-btn${view === 'daywise' ? ' active' : ''}`} onClick={() => setView('daywise')}>
+            Day-wise
+          </button>
+        </div>
+
+        {view === 'daywise' && (
+          <div className="card">
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>Day-wise Expenses{dayGroups.length ? ` — ${dayGroups.length} day${dayGroups.length === 1 ? '' : 's'}` : ''}</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildDaywiseSheet} disabled={!dayGroups.length} /></span>
+            </div>
+            <div className="filters">
+              <label className="text-muted text-xs" htmlFor="expenses-pick-day">
+                Select day:
+              </label>
+              <button className="btn btn-outline btn-sm" title="Previous day" onClick={() => shiftDay(-1)}>◀</button>
+              <input id="expenses-pick-day" type="date" value={selectedDay} onChange={(e) => pickDay(e.target.value)} />
+              <button className="btn btn-outline btn-sm" title="Next day" onClick={() => shiftDay(1)}>▶</button>
+              <button className="btn btn-outline btn-sm" onClick={setToday}>Today</button>
+              <button className="btn btn-outline btn-sm" onClick={setThisMonth}>All days (this month)</button>
+              {selectedDay && (
+                <span className="text-[13px] font-semibold text-muted whitespace-nowrap">
+                  Showing {formatDate(selectedDay)} ({dayName(selectedDay)})
+                </span>
+              )}
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {expenses === null ? (
+                    <tr><td colSpan={4} className="loading">Loading…</td></tr>
+                  ) : loadFailed ? (
+                    <tr><td colSpan={4} className="empty">Failed to load.</td></tr>
+                  ) : dayGroups.length === 0 ? (
+                    <tr><td colSpan={4} className="empty">{selectedDay ? `No expenses on ${formatDate(selectedDay)}.` : 'No expenses found for this period.'}</td></tr>
+                  ) : (
+                    dayGroups.map((g) => (
+                      <Fragment key={g.key}>
+                        <tr style={{ background: 'var(--surface-2, #f4f6fa)' }}>
+                          <td colSpan={3}>
+                            <strong>{formatDate(g.key)}</strong> <span className="text-muted text-xs">({dayName(g.key)}) · {g.items.length} {g.items.length === 1 ? 'entry' : 'entries'}</span>
+                          </td>
+                          <td className="amount-danger"><strong>{formatMoney(g.total)}</strong></td>
+                        </tr>
+                        {g.items.map((r) => (
+                          <tr key={r.expense_id}>
+                            <td />
+                            <td><span className="badge badge-info">{r.category_name || '—'}</span></td>
+                            <td className="ellipsis-cell" title={r.description || ''}>{r.description || '—'}</td>
+                            <td>{formatMoney(r.amount)}</td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {dayGroups.length > 0 && (
+              <div className="amount-danger text-right text-[13px] pt-2.5">Grand Total: {formatMoney(total)}</div>
+            )}
+          </div>
+        )}
+
+        {view === 'all' && (
         <div className="grid-2-1">
           <div className="card">
-            <div className="section-title">All Expenses</div>
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>All Expenses</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildExpensesSheet} disabled={!expenses || !expenses.length} /></span>
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -557,7 +715,10 @@ function ExpensesContent() {
           </div>
 
           <div className="card">
-            <div className="section-title">By Category</div>
+            <div className="section-title flex items-center justify-between gap-2 flex-wrap">
+              <span>By Category</span>
+              <span className="flex items-center gap-2"><SheetButtons getSpec={buildCategorySheet} disabled={!catBreakdown.length} /></span>
+            </div>
             {expenses === null ? (
               <div className="loading">Loading…</div>
             ) : catBreakdown.length === 0 ? (
@@ -582,6 +743,7 @@ function ExpensesContent() {
             )}
           </div>
         </div>
+        )}
       </div>
     </>
   );

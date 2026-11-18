@@ -2,11 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticate, authorizeRoles } from '@/lib/auth';
 import { handleApiError } from '@/lib/apiHandler';
-<<<<<<< HEAD
 import { PERMISSION_GROUPS, PERMISSION_KEYS, PAGE_KEYS, MANAGEABLE_ROLES, DEFAULT_ROLE_LABELS, defaultsForRole } from '@/lib/permissions';
-=======
-import { PERMISSION_GROUPS, PERMISSION_KEYS, PAGE_KEYS, MANAGEABLE_ROLES, defaultsForRole } from '@/lib/permissions';
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 
 /* ─────────────────────────────────────────
    GET /api/permissions — ali only
@@ -37,10 +33,9 @@ export async function GET(req: NextRequest) {
     });
     const userRows = await prisma.user.findMany({
       where: { role: { role_name: { in: MANAGEABLE_ROLES } } },
-      select: { user_id: true, username: true, is_active: true, role: { select: { role_name: true } } },
+      select: { user_id: true, username: true, email: true, is_active: true, role: { select: { role_name: true } } },
       orderBy: [{ role: { role_name: 'asc' } }, { username: 'asc' }],
     });
-<<<<<<< HEAD
     const roleRows = await prisma.role.findMany({
       where: { role_name: { in: MANAGEABLE_ROLES } },
       select: { role_name: true, display_name: true },
@@ -49,11 +44,10 @@ export async function GET(req: NextRequest) {
     roleRows.forEach((r) => {
       if (r.display_name) displayNames[r.role_name] = r.display_name;
     });
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
     const flatUsers = userRows.map((u) => ({
       user_id: u.user_id,
       username: u.username,
+      email: u.email,
       is_active: u.is_active,
       role: u.role?.role_name,
     }));
@@ -86,10 +80,7 @@ export async function GET(req: NextRequest) {
 
       return {
         role,
-<<<<<<< HEAD
         label: displayNames[role] || DEFAULT_ROLE_LABELS[role] || role,
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         users: flatUsers.filter((u) => u.role === role),
         permissions,
         page_visibility,

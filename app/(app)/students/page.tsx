@@ -15,11 +15,10 @@ import { showToast } from '@/lib/toast';
 import { hasPerm, loadMyPermissions, refreshMyPermissions } from '@/lib/permissions-client';
 import { useLiveUpdates } from '@/lib/useLiveUpdates';
 import { bindPanelKeyboardNavigation } from '@/lib/api-client';
+import SheetButtons from '@/components/SheetButtons';
+import type { SheetSpec } from '@/lib/sheet-export';
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
 interface Student {
   student_id: number;
   first_name: string;
@@ -77,12 +76,9 @@ export default function StudentsPage() {
 }
 
 function StudentsContent() {
-<<<<<<< HEAD
   // Left Students now lives at its own /left-students route (see
   // NavBar) rather than as a tab here.
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -102,7 +98,6 @@ function StudentsContent() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileStudent, setProfileStudent] = useState<Student | null>(null);
 
-<<<<<<< HEAD
   // Change Section flow: step 1 picks a student (search reuses the same
   // pattern as the main table search), step 2 confirms the move. Kept
   // as its own small modal rather than repurposing the edit modal so
@@ -116,8 +111,6 @@ function StudentsContent() {
   const [changeSectionSection, setChangeSectionSection] = useState('');
   const [changeSectionSaving, setChangeSectionSaving] = useState(false);
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   const [permTick, setPermTick] = useState(0); // bump to re-render after permissions change
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -206,6 +199,23 @@ function StudentsContent() {
     setTablePage(1);
   }, [deferredSearch, deferredFilterClass, deferredFilterSection, filterBoys, filterGirls, allStudents]);
 
+  function buildStudentsSheet(): SheetSpec | null {
+    if (!filtered.length) return null;
+    const sub: string[] = [];
+    if (search.trim()) sub.push(`Search: ${search.trim()}`);
+    if (filterClass.trim()) sub.push(`Class: ${filterClass.trim()}`);
+    if (filterSection.trim()) sub.push(`Section: ${filterSection.trim()}`);
+    if (filterBoys !== filterGirls) sub.push(filterBoys ? 'Boys only' : 'Girls only');
+    sub.push(`${filtered.length} students`);
+    return {
+      title: 'Students', subtitle: sub.join(' | '), fileName: 'students',
+      columns: [{ header: '#', width: 5 }, { header: 'Roll No', width: 8 }, { header: 'Name', width: 24 }, { header: 'Class', width: 8 }, { header: 'Section', width: 8 },
+        { header: 'Gender', width: 8 }, { header: 'Father', width: 24 }, { header: 'Contact', width: 15 }, { header: 'Email', width: 26 }, { header: 'Admitted', width: 13 }],
+      rows: filtered.map((s, i) => [i + 1, s.roll_no ?? '', `${s.first_name} ${s.last_name || ''}`.trim(), s.class, s.section,
+        s.gender === 'male' ? 'Boy' : s.gender === 'female' ? 'Girl' : '', s.father_name || '', s.contact_1 || '', s.email || '', s.admission_date ? formatDate(s.admission_date) : '']),
+    };
+  }
+
   const totalTablePages = Math.max(Math.ceil(filtered.length / PAGE_SIZE), 1);
   const pagedStudents = useMemo(
     () => filtered.slice((tablePage - 1) * PAGE_SIZE, tablePage * PAGE_SIZE),
@@ -275,7 +285,6 @@ function StudentsContent() {
     if (s) openModal(s);
   }
 
-<<<<<<< HEAD
   // ── Change Section flow ─────────────────────────────────────────
   function openChangeSectionModal() {
     setChangeSectionStep('pick');
@@ -385,8 +394,6 @@ function StudentsContent() {
       .slice(0, 20); // cap results — this is a picker, not the full table
   }, [allStudents, changeSectionSearch]);
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
   async function saveStudent() {
     const id = form.student_id;
     const body = {
@@ -708,7 +715,6 @@ function StudentsContent() {
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* Change Section Modal — two steps: pick a student, then
           confirm the new class/section. */}
       <div className={`modal-overlay${changeSectionOpen ? ' open' : ''}`}>
@@ -852,8 +858,6 @@ function StudentsContent() {
         </div>
       </div>
 
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       {/* Profile Modal */}
       <div className={`modal-overlay${profileOpen ? ' open' : ''}`}>
         <div className="modal">
@@ -915,14 +919,11 @@ function StudentsContent() {
         <div className="page-header">
           <h1 className="page-title">Students</h1>
           <div className="flex gap-2.5 items-center">
-<<<<<<< HEAD
             {hasPerm('students.edit') && (
               <button className="btn btn-outline transition-transform duration-150 active:scale-95" onClick={openChangeSectionModal}>
                 Change Section
               </button>
             )}
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
             {hasPerm('students.add') && (
               <button className="btn btn-primary transition-transform duration-150 active:scale-95" onClick={() => openModal()}>
                 + Add Student
@@ -931,10 +932,7 @@ function StudentsContent() {
           </div>
         </div>
 
-<<<<<<< HEAD
         <>
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
         <div className="card mb-4">
           <div className="filters">
             <input
@@ -967,6 +965,7 @@ function StudentsContent() {
             <span className="text-secondary text-sm font-semibold ml-auto">
               {filtered.length} student{filtered.length !== 1 ? 's' : ''}
             </span>
+            <SheetButtons getSpec={buildStudentsSheet} disabled={!filtered.length} />
           </div>
         </div>
 
@@ -1078,10 +1077,7 @@ function StudentsContent() {
             </div>
           )}
         </div>
-<<<<<<< HEAD
         </>
-=======
->>>>>>> 745f1823290bc92d675237a5ec8114f7c8833b2e
       </div>
     </>
   );

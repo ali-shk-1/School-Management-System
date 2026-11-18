@@ -198,3 +198,21 @@ whether an auth token is present.
   run at least once (it seeds the `role_permissions` defaults for `viewer`,
   `admin`, and `principal`), and that the account you're testing with has an
   `is_active = true` row.
+
+
+## Email OTP password reset (new)
+
+Ali can add an optional email/Gmail when creating (or later editing) an account on the
+**Permissions** page. Users with an email can click **Forgot password?** on the login page,
+receive a 6-digit code (valid 10 min, max 5 wrong tries, 60 s resend cooldown) and set a new password.
+
+1. Apply `Migration-by-Ali/008_user_email_password_reset_otp.sql`, then `npx prisma generate`.
+2. Set SMTP in `.env`. For Gmail, enable 2-Step Verification and create an **App Password**:
+   ```
+   SMTP_HOST="smtp.gmail.com"
+   SMTP_PORT="465"
+   SMTP_SECURE="true"
+   SMTP_USER="yourschool@gmail.com"
+   SMTP_PASS="<16-char app password>"
+   SMTP_FROM="School Administration <yourschool@gmail.com>"
+   ```
